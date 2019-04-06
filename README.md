@@ -1,5 +1,5 @@
-# LogLady
-> LogLady has a story for you
+# loglady
+> loglady has a story for you
 
 ### Commands
 
