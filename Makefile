@@ -8,4 +8,8 @@ build:
 
 .PHONY: run
 run: build
-	$(TARGET_PATH)/$(BIN_NAME)
+	$(CARGO_BIN) run
+
+.PHONY: test
+test:
+	$(CARGO_BIN) test
