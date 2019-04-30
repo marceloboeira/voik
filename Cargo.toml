@@ -4,3 +4,7 @@ version = "0.1.0"
 authors = ["Marcelo Boeira <me@marceloboeira.com>"]
 
 [dependencies]
+
+[dev-dependencies]
+speculate = "0.1"
+rand = "0.6.5"
