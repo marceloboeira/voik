@@ -1,5 +1,5 @@
 use std::fs::{File, OpenOptions};
-use std::io::Write;
+use std::io::{Read, Write};
 use std::path::PathBuf;
 
 #[derive(Debug)]
@@ -20,8 +20,12 @@ impl Segment {
         Ok(Self { file, offset })
     }
 
-    pub fn write(&mut self, b: &[u8]) -> Result<usize, std::io::Error> {
-        self.file.write(b)
+    pub fn write(&mut self, buffer: &[u8]) -> Result<usize, std::io::Error> {
+        self.file.write(buffer)
+    }
+
+    pub fn read(&mut self, buffer: &mut [u8]) -> Result<usize, std::io::Error> {
+        self.file.read(buffer)
     }
 }
 
@@ -126,6 +130,25 @@ mod tests {
                     assert!(expected_file.as_path().exists());
                     assert_eq!(fs::read_to_string(expected_file).unwrap(), String::from("date-2104"));
                 }
+            }
+        }
+
+        describe "reading" {
+            it "reads the content content" {
+                let tmp_dir = tmp_file_path();
+                let expected_file = tmp_dir.clone().join("ll-0");
+
+                fs::create_dir_all(tmp_dir.clone()).unwrap();
+
+                let mut file = File::create(expected_file.clone()).unwrap();
+                file.write(b"2104").unwrap();
+
+                let mut s = Segment::new(tmp_dir.clone(), 0).unwrap();
+
+                let mut buffer = [0; 4];
+                s.read(&mut buffer).unwrap();
+
+                assert_eq!(buffer, *b"2104");
             }
         }
     }
