@@ -8,7 +8,7 @@ use std::path::PathBuf;
 pub struct CommitLog {
     segment_size: i64,
     path: PathBuf,
-    segments: Vec<Segment>,
+    segments: Vec<Segment>, //TODO if too many Segments are created, and not "garbage collected", we have too many files opened
 }
 
 impl CommitLog {
@@ -17,6 +17,7 @@ impl CommitLog {
             fs::create_dir_all(path.clone())?;
         }
 
+        //TODO figure it out the segment starting in 0, should we truncate the file?
         let segments = vec![Segment::new(path.clone(), 0, segment_size)?];
 
         Ok(Self {
@@ -29,6 +30,8 @@ impl CommitLog {
     pub fn write(&mut self, buffer: &[u8]) -> Result<usize, std::io::Error> {
         let buffer_size = buffer.len() as i64;
 
+        //TODO find a better place for this
+        //TODO what if the buffer_size is bigger than the segment_size? loops forever
         if buffer_size > self.active_segment().space_left() {
             let segments_size = self.segments.len() as i64;
             self.segments.push(Segment::new(

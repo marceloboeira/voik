@@ -12,17 +12,19 @@ pub struct Segment {
 
 impl Segment {
     pub fn new(path: PathBuf, offset: i64, max_bytes: i64) -> Result<Self, Error> {
+        //TODO we never close this file, ...
+        //TODO should we truncate the file instead of appending?
         let file = OpenOptions::new()
             .read(true)
             .write(true)
             .create(true)
             .append(true)
-            .open(path.join(format!("ll-{}", offset)))?;
+            .open(path.join(format!("ll-{}", offset)))?; //TODO improve file formatting
 
         Ok(Self {
             file: file,
             offset: offset,
-            size: 0,
+            size: 0, //TODO should it be zero?
             max_bytes: max_bytes,
         })
     }
@@ -42,6 +44,7 @@ impl Segment {
         self.file.write(buffer)
     }
 
+    //TODO create a SegmentReader/SegmentWriter?
     pub fn read(&mut self, buffer: &mut [u8]) -> Result<usize, Error> {
         self.file.read(buffer)
     }
