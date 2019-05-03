@@ -6,22 +6,43 @@ use std::fs;
 use std::path::PathBuf;
 
 pub struct CommitLog {
-    segment: Segment,
+    segment_size: i64,
+    path: PathBuf,
+    segments: Vec<Segment>,
 }
 
 impl CommitLog {
-    pub fn new(path: PathBuf) -> Result<Self, std::io::Error> {
+    pub fn new(path: PathBuf, segment_size: i64) -> Result<Self, std::io::Error> {
         if !path.as_path().exists() {
             fs::create_dir_all(path.clone())?;
         }
 
+        let segments = vec![Segment::new(path.clone(), 0, segment_size)?];
+
         Ok(Self {
-            segment: Segment::new(path, 0)?,
+            path: path,
+            segments: segments,
+            segment_size: segment_size,
         })
     }
 
     pub fn write(&mut self, buffer: &[u8]) -> Result<usize, std::io::Error> {
-        self.segment.write(buffer)
+        let buffer_size = buffer.len() as i64;
+
+        if buffer_size > self.active_segment().space_left() {
+            let segments_size = self.segments.len() as i64;
+            self.segments.push(Segment::new(
+                self.path.clone(),
+                segments_size,
+                self.segment_size,
+            )?);
+        }
+        self.active_segment().write(buffer)
+    }
+
+    fn active_segment(&mut self) -> &mut Segment {
+        let index = self.segments.len() - 1;
+        &mut self.segments[index]
     }
 }
 
@@ -55,7 +76,7 @@ mod tests {
         describe "initializing" {
             describe "when the path is invalid" {
                 it "fails accordingly" {
-                    match CommitLog::new(Path::new("/invalid/dir").to_path_buf()) {
+                    match CommitLog::new(Path::new("/invalid/dir").to_path_buf(), 100) {
                         Err(e) => assert_eq!(e.kind(), std::io::ErrorKind::PermissionDenied),
                         _ => assert!(false) // it should have failed
                     }
@@ -67,7 +88,7 @@ mod tests {
                     it "creates the folder" {
                         let tmp_dir = tmp_file_path();
 
-                        CommitLog::new(tmp_dir.clone()).unwrap();
+                        CommitLog::new(tmp_dir.clone(), 100).unwrap();
 
                         assert!(tmp_dir.as_path().exists());
                     }
@@ -78,11 +99,25 @@ mod tests {
                         let mut tmp_dir = tmp_file_path();
                         fs::create_dir_all(tmp_dir.clone()).unwrap();
 
-                        match CommitLog::new(tmp_dir) {
+                        match CommitLog::new(tmp_dir, 100) {
                             Ok(_) => assert!(true),
                             _ => assert!(false),
                         };
                     }
+                }
+            }
+        }
+
+        describe "writing" {
+            it "rotates segments when a segment if full" {
+                let mut tmp_dir = tmp_file_path();
+
+                let mut c = CommitLog::new(tmp_dir, 100).unwrap();
+                c.write(b"this-should-have-about-80-bytes-but-not-really-sure-to-be-honest-maybe-it-doesn't").unwrap();
+
+                match c.write(b"a-bit-more-than-20-bytes") {
+                    Ok(_) => assert!(true),
+                    Err(_) => assert!(false),
                 }
             }
         }

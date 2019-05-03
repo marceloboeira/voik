@@ -1,15 +1,17 @@
 use std::fs::{File, OpenOptions};
-use std::io::{Read, Write};
+use std::io::{Error, ErrorKind, Read, Write};
 use std::path::PathBuf;
 
 #[derive(Debug)]
 pub struct Segment {
     file: File,
     offset: i64,
+    size: i64,
+    max_bytes: i64,
 }
 
 impl Segment {
-    pub fn new(path: PathBuf, offset: i64) -> Result<Self, std::io::Error> {
+    pub fn new(path: PathBuf, offset: i64, max_bytes: i64) -> Result<Self, Error> {
         let file = OpenOptions::new()
             .read(true)
             .write(true)
@@ -17,14 +19,30 @@ impl Segment {
             .append(true)
             .open(path.join(format!("ll-{}", offset)))?;
 
-        Ok(Self { file, offset })
+        Ok(Self {
+            file: file,
+            offset: offset,
+            size: 0,
+            max_bytes: max_bytes,
+        })
     }
 
-    pub fn write(&mut self, buffer: &[u8]) -> Result<usize, std::io::Error> {
+    pub fn space_left(&self) -> i64 {
+        self.max_bytes - self.size
+    }
+
+    pub fn write(&mut self, buffer: &[u8]) -> Result<usize, Error> {
+        let buffer_size = buffer.len() as i64;
+
+        if buffer_size > self.space_left() {
+            return Err(Error::new(ErrorKind::Other, "No space left on the segment"));
+        }
+
+        self.size += buffer_size;
         self.file.write(buffer)
     }
 
-    pub fn read(&mut self, buffer: &mut [u8]) -> Result<usize, std::io::Error> {
+    pub fn read(&mut self, buffer: &mut [u8]) -> Result<usize, Error> {
         self.file.read(buffer)
     }
 }
@@ -59,7 +77,7 @@ mod tests {
         describe "initializing" {
             describe "when the path is invalid" {
                 it "fails accordingly" {
-                    match Segment::new(Path::new("/invalid/dir/").to_path_buf(), 0) {
+                    match Segment::new(Path::new("/invalid/dir/").to_path_buf(), 0, 100) {
                         Err(e) => assert_eq!(e.kind(), std::io::ErrorKind::NotFound),
                         _ => assert!(false) // it should have failed
                     }
@@ -73,7 +91,7 @@ mod tests {
                         fs::create_dir_all(tmp_dir.clone()).unwrap();
                         let expected_file = tmp_dir.clone().join("ll-0");
 
-                        Segment::new(tmp_dir.clone(), 0).unwrap();
+                        Segment::new(tmp_dir.clone(), 0, 10).unwrap();
 
                         assert!(expected_file.as_path().exists());
                     }
@@ -89,7 +107,7 @@ mod tests {
                         let mut file = File::create(expected_file.clone()).unwrap();
                         file.write(b"2104").unwrap();
 
-                        Segment::new(tmp_dir.clone(), 0).unwrap();
+                        Segment::new(tmp_dir.clone(), 0, 100).unwrap();
 
                         assert!(expected_file.as_path().exists());
                         assert_eq!(fs::read_to_string(expected_file).unwrap(), String::from("2104"));
@@ -99,36 +117,59 @@ mod tests {
         }
 
         describe "writing" {
-            describe "when the file does not exist" {
-                it "writes to a new file" {
-                    let tmp_dir = tmp_file_path();
-                    let expected_file = tmp_dir.clone().join("ll-0");
+            describe "when the buffer is not full" {
+                describe "and the file does not exist" {
+                    it "writes to a new file" {
+                        let tmp_dir = tmp_file_path();
+                        let expected_file = tmp_dir.clone().join("ll-0");
 
-                    fs::create_dir_all(tmp_dir.clone()).unwrap();
+                        fs::create_dir_all(tmp_dir.clone()).unwrap();
 
-                    let mut s = Segment::new(tmp_dir.clone(), 0).unwrap();
-                    s.write(b"2104").unwrap();
+                        let mut s = Segment::new(tmp_dir.clone(), 0, 100).unwrap();
+                        s.write(b"2104").unwrap();
 
-                    assert!(expected_file.as_path().exists());
-                    assert_eq!(fs::read_to_string(expected_file).unwrap(), String::from("2104"));
+                        assert!(expected_file.as_path().exists());
+                        assert_eq!(fs::read_to_string(expected_file).unwrap(), String::from("2104"));
+                    }
+                }
+
+                describe "and the file already exists" {
+                    it "appends to the existing file" {
+                        let tmp_dir = tmp_file_path();
+                        let expected_file = tmp_dir.clone().join("ll-0");
+
+                        fs::create_dir_all(tmp_dir.clone()).unwrap();
+
+                        let mut file = File::create(expected_file.clone()).unwrap();
+                        file.write(b"date-").unwrap();
+
+                        let mut s = Segment::new(tmp_dir.clone(), 0, 100).unwrap();
+                        s.write(b"2104").unwrap();
+
+                        assert!(expected_file.as_path().exists());
+                        assert_eq!(fs::read_to_string(expected_file).unwrap(), String::from("date-2104"));
+                    }
                 }
             }
 
-            describe "when the file already exists" {
-                it "appends to the existing file" {
+            describe "when the buffer is full" {
+                it "errors" {
                     let tmp_dir = tmp_file_path();
                     let expected_file = tmp_dir.clone().join("ll-0");
-
                     fs::create_dir_all(tmp_dir.clone()).unwrap();
 
-                    let mut file = File::create(expected_file.clone()).unwrap();
-                    file.write(b"date-").unwrap();
+                    let mut s = Segment::new(tmp_dir.clone(), 0, 20).unwrap();
+                    s.write(b"this-has-17-bytes").unwrap();
 
-                    let mut s = Segment::new(tmp_dir.clone(), 0).unwrap();
-                    s.write(b"2104").unwrap();
+                    match s.write(b"this-should-error") {
+                        Ok(_) => assert!(false), // it should have errored
+                        Err(e) => {
+                            assert_eq!(e.kind(), std::io::ErrorKind::Other);
+                        }
+                    }
 
-                    assert!(expected_file.as_path().exists());
-                    assert_eq!(fs::read_to_string(expected_file).unwrap(), String::from("date-2104"));
+
+                    assert_eq!(fs::read_to_string(expected_file).unwrap(), String::from("this-has-17-bytes"));
                 }
             }
         }
@@ -137,18 +178,29 @@ mod tests {
             it "reads the content content" {
                 let tmp_dir = tmp_file_path();
                 let expected_file = tmp_dir.clone().join("ll-0");
-
                 fs::create_dir_all(tmp_dir.clone()).unwrap();
 
                 let mut file = File::create(expected_file.clone()).unwrap();
                 file.write(b"2104").unwrap();
 
-                let mut s = Segment::new(tmp_dir.clone(), 0).unwrap();
+                let mut s = Segment::new(tmp_dir.clone(), 0, 20).unwrap();
 
                 let mut buffer = [0; 4];
                 s.read(&mut buffer).unwrap();
 
                 assert_eq!(buffer, *b"2104");
+            }
+        }
+
+        describe "space left" {
+            it "returns the amount of space left on the segment" {
+                let tmp_dir = tmp_file_path();
+                fs::create_dir_all(tmp_dir.clone()).unwrap();
+                let mut s = Segment::new(tmp_dir.clone(), 0, 100).unwrap();
+
+                s.write(b"this-has-17-bytes").unwrap();
+
+                assert_eq!(s.space_left(), 100-17)
             }
         }
     }
