@@ -10,12 +10,12 @@ fn main() -> Result<(), std::io::Error> {
 
     println!("👵 loglady logging to {:?}", target_path);
 
-    let segment_size = 2097152; // 2MB
+    let segment_size = 1_048_576; // 1MB
     let total_messages = 1_000_000;
     let mut clog = CommitLog::new(target_path, segment_size)?;
 
     for _ in 0..total_messages {
-        clog.write(b"one day my log will have something to say about this ")?;
+        clog.write(b"one day my log will have something to say about this|")?;
     }
 
     let ms = now.elapsed().unwrap().as_millis();

@@ -26,7 +26,7 @@ impl Segment {
             .write(true)
             .create(true)
             .append(true)
-            .open(path.join(format!("ll-{}", offset)))?; //TODO improve file formatting
+            .open(path.join(format!("{:020}.log", offset)))?; //TODO improve file formatting
 
         Ok(Self {
             file: file,
@@ -99,7 +99,7 @@ mod tests {
                     it "creates a new file" {
                         let tmp_dir = tmp_file_path();
                         fs::create_dir_all(tmp_dir.clone()).unwrap();
-                        let expected_file = tmp_dir.clone().join("ll-0");
+                        let expected_file = tmp_dir.clone().join("00000000000000000000.log");
 
                         Segment::new(tmp_dir.clone(), 0, 10).unwrap();
 
@@ -110,7 +110,7 @@ mod tests {
                 describe "and the file already exists" {
                     it "does not recreate it" {
                         let tmp_dir = tmp_file_path();
-                        let expected_file = tmp_dir.clone().join("ll-0");
+                        let expected_file = tmp_dir.clone().join("00000000000000000000.log");
 
                         fs::create_dir_all(tmp_dir.clone()).unwrap();
 
@@ -131,7 +131,7 @@ mod tests {
                 describe "and the file does not exist" {
                     it "writes to a new file" {
                         let tmp_dir = tmp_file_path();
-                        let expected_file = tmp_dir.clone().join("ll-0");
+                        let expected_file = tmp_dir.clone().join("00000000000000000000.log");
 
                         fs::create_dir_all(tmp_dir.clone()).unwrap();
 
@@ -146,7 +146,7 @@ mod tests {
                 describe "and the file already exists" {
                     it "appends to the existing file" {
                         let tmp_dir = tmp_file_path();
-                        let expected_file = tmp_dir.clone().join("ll-0");
+                        let expected_file = tmp_dir.clone().join("00000000000000000000.log");
 
                         fs::create_dir_all(tmp_dir.clone()).unwrap();
 
@@ -165,7 +165,7 @@ mod tests {
             describe "when the buffer is full" {
                 it "errors" {
                     let tmp_dir = tmp_file_path();
-                    let expected_file = tmp_dir.clone().join("ll-0");
+                    let expected_file = tmp_dir.clone().join("00000000000000000000.log");
                     fs::create_dir_all(tmp_dir.clone()).unwrap();
 
                     let mut s = Segment::new(tmp_dir.clone(), 0, 20).unwrap();
@@ -187,7 +187,7 @@ mod tests {
         describe "reading" {
             it "reads the content content" {
                 let tmp_dir = tmp_file_path();
-                let expected_file = tmp_dir.clone().join("ll-0");
+                let expected_file = tmp_dir.clone().join("00000000000000000000.log");
                 fs::create_dir_all(tmp_dir.clone()).unwrap();
 
                 let mut file = File::create(expected_file.clone()).unwrap();

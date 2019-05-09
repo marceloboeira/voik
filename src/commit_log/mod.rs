@@ -6,8 +6,13 @@ use std::fs;
 use std::path::PathBuf;
 
 pub struct CommitLog {
-    segment_size: usize,
+    // Root directory for the Commitlog files
     path: PathBuf,
+
+    // Size in bytes for the segments
+    segment_size: usize,
+
+    // List of segments
     segments: Vec<Segment>, //TODO if too many Segments are created, and not "garbage collected", we have too many files opened
 }
 
