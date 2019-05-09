@@ -6,13 +6,13 @@ use std::fs;
 use std::path::PathBuf;
 
 pub struct CommitLog {
-    segment_size: i64,
+    segment_size: usize,
     path: PathBuf,
     segments: Vec<Segment>, //TODO if too many Segments are created, and not "garbage collected", we have too many files opened
 }
 
 impl CommitLog {
-    pub fn new(path: PathBuf, segment_size: i64) -> Result<Self, std::io::Error> {
+    pub fn new(path: PathBuf, segment_size: usize) -> Result<Self, std::io::Error> {
         if !path.as_path().exists() {
             fs::create_dir_all(path.clone())?;
         }
@@ -28,12 +28,12 @@ impl CommitLog {
     }
 
     pub fn write(&mut self, buffer: &[u8]) -> Result<usize, std::io::Error> {
-        let buffer_size = buffer.len() as i64;
+        let buffer_size = buffer.len();
 
         //TODO find a better place for this
         //TODO what if the buffer_size is bigger than the segment_size? loops forever
         if buffer_size > self.active_segment().space_left() {
-            let segments_size = self.segments.len() as i64;
+            let segments_size = self.segments.len();
             self.segments.push(Segment::new(
                 self.path.clone(),
                 segments_size,

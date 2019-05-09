@@ -1,7 +1,6 @@
 mod commit_log;
 
 use commit_log::CommitLog;
-
 use std::time::SystemTime;
 
 fn main() -> Result<(), std::io::Error> {

@@ -4,14 +4,21 @@ use std::path::PathBuf;
 
 #[derive(Debug)]
 pub struct Segment {
+    // File Descriptor
     file: File,
-    offset: i64,
-    size: i64,
-    max_bytes: i64,
+
+    // Offset (Only used as name of the file at the moment)
+    offset: usize,
+
+    // Current size of the file in bytes
+    size: usize,
+
+    // Max size of the file in bytes
+    max_size: usize,
 }
 
 impl Segment {
-    pub fn new(path: PathBuf, offset: i64, max_bytes: i64) -> Result<Self, Error> {
+    pub fn new(path: PathBuf, offset: usize, max_size: usize) -> Result<Self, Error> {
         //TODO we never close this file, ...
         //TODO should we truncate the file instead of appending?
         let file = OpenOptions::new()
@@ -25,16 +32,16 @@ impl Segment {
             file: file,
             offset: offset,
             size: 0, //TODO should it be zero?
-            max_bytes: max_bytes,
+            max_size: max_size,
         })
     }
 
-    pub fn space_left(&self) -> i64 {
-        self.max_bytes - self.size
+    pub fn space_left(&self) -> usize {
+        self.max_size - self.size
     }
 
     pub fn write(&mut self, buffer: &[u8]) -> Result<usize, Error> {
-        let buffer_size = buffer.len() as i64;
+        let buffer_size = buffer.len();
 
         if buffer_size > self.space_left() {
             return Err(Error::new(ErrorKind::Other, "No space left on the segment"));
