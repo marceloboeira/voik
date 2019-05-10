@@ -68,14 +68,12 @@ impl Segment {
 #[cfg(test)]
 mod tests {
     extern crate rand;
-    extern crate speculate;
     use self::rand::{distributions, thread_rng, Rng};
-    use self::speculate::speculate;
     use commit_log::segment::Segment;
     use std::env;
     use std::fs::{self, File};
     use std::io::Write;
-    use std::path::{self, Path, PathBuf};
+    use std::path::{Path, PathBuf};
 
     fn random_hash() -> String {
         thread_rng()
@@ -91,177 +89,176 @@ mod tests {
         tmp_dir
     }
 
-    speculate! {
-        describe "initializing" {
-            describe "when the path is invalid" {
-                it "fails accordingly" {
-                    match Segment::new(Path::new("/invalid/dir/").to_path_buf(), 0, 100) {
-                        Err(e) => assert_eq!(e.kind(), std::io::ErrorKind::NotFound),
-                        _ => assert!(false) // it should have failed
-                    }
-                }
-            }
+    #[test]
+    fn test_initializing_when_the_path_is_invalid_it_fails_accordingly() {
+        match Segment::new(Path::new("/invalid/dir/").to_path_buf(), 0, 100) {
+            Err(e) => assert_eq!(e.kind(), std::io::ErrorKind::NotFound),
+            _ => assert!(false), // it should have failed
+        }
+    }
 
-            describe "when the path is valid" {
-                describe "and the file does not exist" {
-                    it "creates a new file" {
-                        let tmp_dir = tmp_file_path();
-                        fs::create_dir_all(tmp_dir.clone()).unwrap();
-                        let expected_file = tmp_dir.clone().join("00000000000000000000.log");
+    #[test]
+    fn test_initializing_when_the_path_and_the_file_does_not_exist_creates_the_file() {
+        let tmp_dir = tmp_file_path();
+        fs::create_dir_all(tmp_dir.clone()).unwrap();
+        let expected_file = tmp_dir.clone().join("00000000000000000000.log");
 
-                        Segment::new(tmp_dir.clone(), 0, 10).unwrap();
+        Segment::new(tmp_dir.clone(), 0, 10).unwrap();
 
-                        assert!(expected_file.as_path().exists());
-                    }
-                }
+        assert!(expected_file.as_path().exists());
+    }
 
-                describe "and the file already exists" {
-                    it "does not recreate it" {
-                        let tmp_dir = tmp_file_path();
-                        let expected_file = tmp_dir.clone().join("00000000000000000000.log");
+    #[test]
+    fn test_initializing_when_the_path_and_the_file_already_exists_does_not_create_or_override() {
+        let tmp_dir = tmp_file_path();
+        let expected_file = tmp_dir.clone().join("00000000000000000000.log");
 
-                        fs::create_dir_all(tmp_dir.clone()).unwrap();
+        fs::create_dir_all(tmp_dir.clone()).unwrap();
 
-                        let mut file = File::create(expected_file.clone()).unwrap();
-                        file.write(b"2104").unwrap();
+        let mut file = File::create(expected_file.clone()).unwrap();
+        file.write(b"2104").unwrap();
 
-                        Segment::new(tmp_dir.clone(), 0, 100).unwrap();
+        Segment::new(tmp_dir.clone(), 0, 100).unwrap();
 
-                        assert!(expected_file.as_path().exists());
-                        assert_eq!(fs::read_to_string(expected_file).unwrap(), String::from("2104"));
-                    }
-                }
+        assert!(expected_file.as_path().exists());
+        assert_eq!(
+            fs::read_to_string(expected_file).unwrap(),
+            String::from("2104")
+        );
+    }
+
+    #[test]
+    fn test_writing_when_segment_is_not_full_and_the_file_does_not_exist_writes_to_a_new_file() {
+        let tmp_dir = tmp_file_path();
+        let expected_file = tmp_dir.clone().join("00000000000000000000.log");
+
+        fs::create_dir_all(tmp_dir.clone()).unwrap();
+
+        let mut s = Segment::new(tmp_dir.clone(), 0, 100).unwrap();
+        s.write(b"2104").unwrap();
+
+        assert!(expected_file.as_path().exists());
+        assert_eq!(
+            fs::read_to_string(expected_file).unwrap(),
+            String::from("2104")
+        );
+    }
+
+    #[test]
+    fn test_writing_when_segment_is_not_full_and_the_file_already_exists_appends_to_the_existing_file(
+    ) {
+        let tmp_dir = tmp_file_path();
+        let expected_file = tmp_dir.clone().join("00000000000000000000.log");
+
+        fs::create_dir_all(tmp_dir.clone()).unwrap();
+
+        let mut file = File::create(expected_file.clone()).unwrap();
+        file.write(b"date-").unwrap();
+
+        let mut s = Segment::new(tmp_dir.clone(), 0, 100).unwrap();
+        s.write(b"2104").unwrap();
+
+        assert!(expected_file.as_path().exists());
+        assert_eq!(
+            fs::read_to_string(expected_file).unwrap(),
+            String::from("date-2104")
+        );
+    }
+
+    #[test]
+    fn test_writing_when_segment_is_not_full_and_the_file_already_exists_respects_the_file_size() {
+        let tmp_dir = tmp_file_path();
+        let expected_file = tmp_dir.clone().join("00000000000000000000.log");
+
+        fs::create_dir_all(tmp_dir.clone()).unwrap();
+
+        let mut file = File::create(expected_file.clone()).unwrap();
+        file.write(b"initial-content-18").unwrap(); // occupies 18 bytes
+
+        let mut s = Segment::new(tmp_dir.clone(), 0, 20).unwrap(); // set the limit to 20 bytes
+        s.write(b"1").unwrap(); // should be able to write 1 byte (total 19)
+
+        // should not be able to write another 16 bytes
+        match s.write(b"this-should-error") {
+            Ok(_) => assert!(false), // it should have errored
+            Err(e) => {
+                assert_eq!(e.kind(), std::io::ErrorKind::Other);
             }
         }
 
-        describe "writing" {
-            describe "when the buffer is not full" {
-                describe "and the file does not exist" {
-                    it "writes to a new file" {
-                        let tmp_dir = tmp_file_path();
-                        let expected_file = tmp_dir.clone().join("00000000000000000000.log");
+        assert_eq!(
+            fs::read_to_string(expected_file).unwrap(),
+            String::from("initial-content-181")
+        );
+    }
 
-                        fs::create_dir_all(tmp_dir.clone()).unwrap();
+    #[test]
+    fn test_writing_when_segment_is_full_it_errors() {
+        let tmp_dir = tmp_file_path();
+        let expected_file = tmp_dir.clone().join("00000000000000000000.log");
+        fs::create_dir_all(tmp_dir.clone()).unwrap();
 
-                        let mut s = Segment::new(tmp_dir.clone(), 0, 100).unwrap();
-                        s.write(b"2104").unwrap();
+        let mut s = Segment::new(tmp_dir.clone(), 0, 20).unwrap();
+        s.write(b"this-has-17-bytes").unwrap();
 
-                        assert!(expected_file.as_path().exists());
-                        assert_eq!(fs::read_to_string(expected_file).unwrap(), String::from("2104"));
-                    }
-                }
-
-                describe "and the file already exists" {
-                    it "appends to the existing file" {
-                        let tmp_dir = tmp_file_path();
-                        let expected_file = tmp_dir.clone().join("00000000000000000000.log");
-
-                        fs::create_dir_all(tmp_dir.clone()).unwrap();
-
-                        let mut file = File::create(expected_file.clone()).unwrap();
-                        file.write(b"date-").unwrap();
-
-                        let mut s = Segment::new(tmp_dir.clone(), 0, 100).unwrap();
-                        s.write(b"2104").unwrap();
-
-                        assert!(expected_file.as_path().exists());
-                        assert_eq!(fs::read_to_string(expected_file).unwrap(), String::from("date-2104"));
-                    }
-
-                    it "respects the file size" {
-                        let tmp_dir = tmp_file_path();
-                        let expected_file = tmp_dir.clone().join("00000000000000000000.log");
-
-                        fs::create_dir_all(tmp_dir.clone()).unwrap();
-
-                        let mut file = File::create(expected_file.clone()).unwrap();
-                        file.write(b"initial-content-18").unwrap(); // occupies 18 bytes
-
-                        let mut s = Segment::new(tmp_dir.clone(), 0, 20).unwrap(); // set the limit to 20 bytes
-                        s.write(b"1").unwrap(); // should be able to write 1 byte (total 19)
-
-                        // should not be able to write another 16 bytes
-                        match s.write(b"this-should-error") {
-                            Ok(_) => assert!(false), // it should have errored
-                            Err(e) => {
-                                assert_eq!(e.kind(), std::io::ErrorKind::Other);
-                            }
-                        }
-
-                        assert_eq!(fs::read_to_string(expected_file).unwrap(), String::from("initial-content-181"));
-                    }
-                }
-            }
-
-            describe "when the buffer is full" {
-                it "errors" {
-                    let tmp_dir = tmp_file_path();
-                    let expected_file = tmp_dir.clone().join("00000000000000000000.log");
-                    fs::create_dir_all(tmp_dir.clone()).unwrap();
-
-                    let mut s = Segment::new(tmp_dir.clone(), 0, 20).unwrap();
-                    s.write(b"this-has-17-bytes").unwrap();
-
-                    match s.write(b"this-should-error") {
-                        Ok(_) => assert!(false), // it should have errored
-                        Err(e) => {
-                            assert_eq!(e.kind(), std::io::ErrorKind::Other);
-                        }
-                    }
-
-                    assert_eq!(fs::read_to_string(expected_file).unwrap(), String::from("this-has-17-bytes"));
-                }
+        match s.write(b"this-should-error") {
+            Ok(_) => assert!(false), // it should have errored
+            Err(e) => {
+                assert_eq!(e.kind(), std::io::ErrorKind::Other);
             }
         }
 
-        describe "reading" {
-            it "reads the content content" {
-                let tmp_dir = tmp_file_path();
-                let expected_file = tmp_dir.clone().join("00000000000000000000.log");
-                fs::create_dir_all(tmp_dir.clone()).unwrap();
+        assert_eq!(
+            fs::read_to_string(expected_file).unwrap(),
+            String::from("this-has-17-bytes")
+        );
+    }
 
-                let mut file = File::create(expected_file.clone()).unwrap();
-                file.write(b"2104").unwrap();
+    #[test]
+    fn test_reading_when_segment_has_content_reads() {
+        let tmp_dir = tmp_file_path();
+        let expected_file = tmp_dir.clone().join("00000000000000000000.log");
+        fs::create_dir_all(tmp_dir.clone()).unwrap();
 
-                let mut s = Segment::new(tmp_dir.clone(), 0, 20).unwrap();
+        let mut file = File::create(expected_file.clone()).unwrap();
+        file.write(b"2104").unwrap();
 
-                let mut buffer = [0; 4];
-                s.read(&mut buffer).unwrap();
+        let mut s = Segment::new(tmp_dir.clone(), 0, 20).unwrap();
 
-                assert_eq!(buffer, *b"2104");
-            }
+        let mut buffer = [0; 4];
+        s.read(&mut buffer).unwrap();
 
-            it "reads on a specific location" {
-                let tmp_dir = tmp_file_path();
-                let expected_file = tmp_dir.clone().join("00000000000000000000.log");
-                fs::create_dir_all(tmp_dir.clone()).unwrap();
+        assert_eq!(buffer, *b"2104");
+    }
 
-                let mut s = Segment::new(tmp_dir.clone(), 0, 100).unwrap();
+    #[test]
+    fn test_reading_when_segment_has_content_read_at_a_specific_location() {
+        let tmp_dir = tmp_file_path();
+        fs::create_dir_all(tmp_dir.clone()).unwrap();
 
-                s.write(b"first-message").unwrap();
-                s.write(b"second-message").unwrap();
+        let mut s = Segment::new(tmp_dir.clone(), 0, 100).unwrap();
 
-                let mut buffer1 = [0; 13];
-                s.read_at(&mut buffer1, 0).unwrap();
+        s.write(b"first-message").unwrap();
+        s.write(b"second-message").unwrap();
 
-                let mut buffer2 = [0; 14];
-                s.read_at(&mut buffer2, 13).unwrap();
+        let mut buffer1 = [0; 13];
+        s.read_at(&mut buffer1, 0).unwrap();
 
-                assert_eq!(buffer1, *b"first-message");
-                assert_eq!(buffer2, *b"second-message");
-            }
-        }
+        let mut buffer2 = [0; 14];
+        s.read_at(&mut buffer2, 13).unwrap();
 
-        describe "space left" {
-            it "returns the amount of space left on the segment" {
-                let tmp_dir = tmp_file_path();
-                fs::create_dir_all(tmp_dir.clone()).unwrap();
-                let mut s = Segment::new(tmp_dir.clone(), 0, 100).unwrap();
+        assert_eq!(buffer1, *b"first-message");
+        assert_eq!(buffer2, *b"second-message");
+    }
 
-                s.write(b"this-has-17-bytes").unwrap();
+    #[test]
+    fn test_space_lefta_mount_of_space_left_on_the_segment() {
+        let tmp_dir = tmp_file_path();
+        fs::create_dir_all(tmp_dir.clone()).unwrap();
+        let mut s = Segment::new(tmp_dir.clone(), 0, 100).unwrap();
 
-                assert_eq!(s.space_left(), 100-17)
-            }
-        }
+        s.write(b"this-has-17-bytes").unwrap();
+
+        assert_eq!(s.space_left(), 100 - 17)
     }
 }

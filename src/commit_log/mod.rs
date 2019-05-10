@@ -57,13 +57,11 @@ impl CommitLog {
 #[cfg(test)]
 mod tests {
     extern crate rand;
-    extern crate speculate;
+
     use self::rand::{distributions, thread_rng, Rng};
-    use self::speculate::speculate;
     use commit_log::CommitLog;
     use std::env;
-    use std::fs::{self, File};
-    use std::io::Write;
+    use std::fs;
     use std::path::{Path, PathBuf};
 
     fn random_hash() -> String {
@@ -80,54 +78,65 @@ mod tests {
         tmp_dir
     }
 
-    speculate! {
-        describe "initializing" {
-            describe "when the path is invalid" {
-                it "fails accordingly" {
-                    match CommitLog::new(Path::new("/invalid/dir").to_path_buf(), 100) {
-                        Err(e) => assert_eq!(e.kind(), std::io::ErrorKind::PermissionDenied),
-                        _ => assert!(false) // it should have failed
-                    }
-                }
-            }
-
-            describe "when the path is valid" {
-                describe "and the folder does not exist" {
-                    it "creates the folder" {
-                        let tmp_dir = tmp_file_path();
-
-                        CommitLog::new(tmp_dir.clone(), 100).unwrap();
-
-                        assert!(tmp_dir.as_path().exists());
-                    }
-                }
-
-                describe "and the folder already exists" {
-                    it "does not recreate it" {
-                        let mut tmp_dir = tmp_file_path();
-                        fs::create_dir_all(tmp_dir.clone()).unwrap();
-
-                        match CommitLog::new(tmp_dir, 100) {
-                            Ok(_) => assert!(true),
-                            _ => assert!(false),
-                        };
-                    }
-                }
-            }
-        }
-
-        describe "writing" {
-            it "rotates segments when a segment if full" {
-                let mut tmp_dir = tmp_file_path();
-
-                let mut c = CommitLog::new(tmp_dir, 100).unwrap();
-                c.write(b"this-should-have-about-80-bytes-but-not-really-sure-to-be-honest-maybe-it-doesn't").unwrap();
-
-                match c.write(b"a-bit-more-than-20-bytes") {
-                    Ok(_) => assert!(true),
-                    Err(_) => assert!(false),
-                }
-            }
+    #[test]
+    fn test_initializing_when_the_path_is_invalid_it_fails() {
+        match CommitLog::new(Path::new("/invalid/dir").to_path_buf(), 100) {
+            Err(e) => assert_eq!(e.kind(), std::io::ErrorKind::PermissionDenied),
+            _ => assert!(false), // it should have failed
         }
     }
+
+    #[test]
+    fn test_initializing_when_the_path_is_valid_and_the_folder_does_not_exist_it_creates_the_folder(
+    ) {
+        let tmp_dir = tmp_file_path();
+        CommitLog::new(tmp_dir.clone(), 100).unwrap();
+
+        assert!(tmp_dir.as_path().exists());
+    }
+
+    #[test]
+    fn test_initializing_when_the_path_is_valid_and_the_folder_already_exists_it_does_not_recreate_it(
+    ) {
+        let tmp_dir = tmp_file_path();
+        fs::create_dir_all(tmp_dir.clone()).unwrap();
+
+        match CommitLog::new(tmp_dir, 100) {
+            Ok(_) => assert!(true),
+            _ => assert!(false),
+        };
+    }
+
+    #[test]
+    fn test_writing_when_segment_has_space_it_writes_to_it() {
+        let tmp_dir = tmp_file_path();
+
+        let mut c = CommitLog::new(tmp_dir, 100).unwrap();
+
+        assert_eq!(c.write(b"this-has-less-than-100-bytes").unwrap(), 28);
+    }
+
+    #[test]
+    fn test_writing_when_segment_has_no_space_it_rotates_to_a_new_segment() {
+        let tmp_dir = tmp_file_path();
+
+        let mut c = CommitLog::new(tmp_dir, 100).unwrap();
+        c.write(
+            b"this-should-have-about-80-bytes-but-not-really-sure-to-be-honest-maybe-it-doesn't",
+        )
+        .unwrap();
+
+        assert_eq!(c.write(b"a-bit-more-than-20-bytes").unwrap(), 24);
+    }
+
+    // TODO implement a specific error for when the message is bigger than the segment
+    // #[test]
+    // fn test_writing_when_message_is_bigger_than_segment_size_it_errors() {
+    //     let mut tmp_dir = tmp_file_path();
+
+    //     let mut c = CommitLog::new(tmp_dir, 10).unwrap();
+    //     c.write(b"").unwrap();
+
+    //     assert_eq!(c.write(b"this-should-have-about-80-bytes-but-not-really-sure-to-be-honest-maybe-it-doesn't").unwrap(), 24);
+    // }
 }

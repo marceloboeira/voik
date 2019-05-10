@@ -3,9 +3,8 @@ mod commit_log;
 extern crate dirs;
 
 use commit_log::CommitLog;
-use std::time::SystemTime;
-
 use std::fs;
+use std::time::SystemTime;
 
 fn main() -> Result<(), std::io::Error> {
     let mut target_path = dirs::home_dir().unwrap();
@@ -18,13 +17,13 @@ fn main() -> Result<(), std::io::Error> {
     let total_messages = 100_000;
     let mut clog = CommitLog::new(target_path, segment_size)?;
 
-    let now = SystemTime::now();
+    let start = SystemTime::now();
     for _ in 0..total_messages {
         clog.write(b"one day my log will have something to say about this|")?;
     }
 
-    let ms = now.elapsed().unwrap().as_millis();
-    println!("{} messages written in {} ms", total_messages, ms);
+    let ms = SystemTime::now().duration_since(start).expect("Time went backwards");
+    println!("{} messages written in {:?}", total_messages, ms);
 
     Ok(())
 }

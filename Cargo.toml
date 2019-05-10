@@ -7,5 +7,4 @@ authors = ["Marcelo Boeira <me@marceloboeira.com>"]
 dirs = "1.0.5"
 
 [dev-dependencies]
-speculate = "0.1"
 rand = "0.6.5"
