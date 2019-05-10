@@ -1,4 +1,5 @@
 mod segment;
+#[cfg(feature = "test-prelude")]
 mod test;
 
 use self::segment::Segment;

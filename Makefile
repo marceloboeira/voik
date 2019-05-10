@@ -28,7 +28,7 @@ install: build_release
 
 .PHONY: test
 test: format
-	@$(CARGO_BIN) test
+	@$(CARGO_BIN) test --all-features
 
 .PHONY: test_watcher
 test_watcher:
