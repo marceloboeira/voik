@@ -1,4 +1,4 @@
-- name: tests
-  run: "cargo test"
+- name: format && test
+  run: "make test"
   change: "src/**"
   run_on_init: true
