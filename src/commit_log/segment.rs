@@ -67,27 +67,11 @@ impl Segment {
 
 #[cfg(test)]
 mod tests {
-    extern crate rand;
-    use self::rand::{distributions, thread_rng, Rng};
     use commit_log::segment::Segment;
-    use std::env;
+    use commit_log::test::*;
     use std::fs::{self, File};
     use std::io::Write;
-    use std::path::{Path, PathBuf};
-
-    fn random_hash() -> String {
-        thread_rng()
-            .sample_iter(&distributions::Alphanumeric)
-            .take(30)
-            .collect()
-    }
-
-    fn tmp_file_path() -> PathBuf {
-        let mut tmp_dir = env::temp_dir();
-        tmp_dir.push(random_hash());
-
-        tmp_dir
-    }
+    use std::path::Path;
 
     #[test]
     #[should_panic]

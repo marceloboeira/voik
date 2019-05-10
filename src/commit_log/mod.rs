@@ -1,4 +1,5 @@
 mod segment;
+mod test;
 
 use self::segment::Segment;
 
@@ -63,27 +64,10 @@ impl CommitLog {
 
 #[cfg(test)]
 mod tests {
-    extern crate rand;
-
-    use self::rand::{distributions, thread_rng, Rng};
+    use commit_log::test::*;
     use commit_log::CommitLog;
-    use std::env;
     use std::fs;
-    use std::path::{Path, PathBuf};
-
-    fn random_hash() -> String {
-        thread_rng()
-            .sample_iter(&distributions::Alphanumeric)
-            .take(30)
-            .collect()
-    }
-
-    fn tmp_file_path() -> PathBuf {
-        let mut tmp_dir = env::temp_dir();
-        tmp_dir.push(random_hash());
-
-        tmp_dir
-    }
+    use std::path::Path;
 
     #[test]
     #[should_panic]
@@ -134,7 +118,7 @@ mod tests {
     #[test]
     #[should_panic]
     fn test_writing_when_the_buffer_is_bigger_than_segment_size_it_errors() {
-        let mut tmp_dir = tmp_file_path();
+        let tmp_dir = tmp_file_path();
 
         let mut c = CommitLog::new(tmp_dir, 10).unwrap();
         c.write(b"the-buffer-is-too-big").unwrap();
