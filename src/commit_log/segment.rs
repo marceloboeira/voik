@@ -1,5 +1,5 @@
 use std::fs::{File, OpenOptions};
-use std::io::{Error, ErrorKind, Read, Write};
+use std::io::{Error, ErrorKind, Read, Seek, SeekFrom, Write};
 use std::path::PathBuf;
 
 #[derive(Debug)]
@@ -53,6 +53,11 @@ impl Segment {
 
     //TODO create a SegmentReader/SegmentWriter?
     pub fn read(&mut self, buffer: &mut [u8]) -> Result<usize, Error> {
+        self.file.read(buffer)
+    }
+
+    pub fn read_at(&mut self, buffer: &mut [u8], offset: usize) -> Result<usize, Error> {
+        self.file.seek(SeekFrom::Start(offset as u64))?;
         self.file.read(buffer)
     }
 }
@@ -178,7 +183,6 @@ mod tests {
                         }
                     }
 
-
                     assert_eq!(fs::read_to_string(expected_file).unwrap(), String::from("this-has-17-bytes"));
                 }
             }
@@ -199,6 +203,26 @@ mod tests {
                 s.read(&mut buffer).unwrap();
 
                 assert_eq!(buffer, *b"2104");
+            }
+
+            it "reads on a specific location" {
+                let tmp_dir = tmp_file_path();
+                let expected_file = tmp_dir.clone().join("00000000000000000000.log");
+                fs::create_dir_all(tmp_dir.clone()).unwrap();
+
+                let mut s = Segment::new(tmp_dir.clone(), 0, 100).unwrap();
+
+                s.write(b"first-message").unwrap();
+                s.write(b"second-message").unwrap();
+
+                let mut buffer1 = [0; 13];
+                s.read_at(&mut buffer1, 0).unwrap();
+
+                let mut buffer2 = [0; 14];
+                s.read_at(&mut buffer2, 13).unwrap();
+
+                assert_eq!(buffer1, *b"first-message");
+                assert_eq!(buffer2, *b"second-message");
             }
         }
 
