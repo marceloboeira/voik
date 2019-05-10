@@ -22,7 +22,9 @@ fn main() -> Result<(), std::io::Error> {
         clog.write(b"one day my log will have something to say about this|")?;
     }
 
-    let ms = SystemTime::now().duration_since(start).expect("Time went backwards");
+    let ms = SystemTime::now()
+        .duration_since(start)
+        .expect("Time went backwards");
     println!("{} messages written in {:?}", total_messages, ms);
 
     Ok(())

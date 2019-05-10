@@ -1,0 +1,4 @@
+- name: tests
+  run: "cargo test"
+  change: "src/**"
+  run_on_init: true

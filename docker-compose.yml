@@ -1,0 +1,14 @@
+version: "3.7"
+
+services:
+  test_watcher:
+    build:
+      context: .
+      dockerfile: Dockerfile.test
+    command: ["funzzy"]
+    working_dir: "/loglady"
+    volumes:
+      - .:/loglady
+    tty: true
+    environment:
+        - TERM=xterm-256color`

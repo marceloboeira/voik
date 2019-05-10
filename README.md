@@ -55,6 +55,8 @@
 * `make build_release` -> build for release
 * `make run` -> build and run
 * `make install` -> use cargo to install locally
+* `make test_watcher` - Run the tests under a watcher.
+* `make docker_test_watcher` - Run the tests under a watcher on Docker (to ensure linux compatibility).
 
 ## References
 

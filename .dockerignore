@@ -1,0 +1,19 @@
+# Git
+.git
+
+# Rust/Cargo
+target/
+**/*.rs.bk
+
+# Dockerfiles
+Dockerfile
+Dockerfile.test
+
+# Makefile
+Makefile
+
+# ctags
+tags
+
+# Docs
+README.md
