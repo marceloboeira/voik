@@ -80,8 +80,8 @@ mod tests {
 
     #[test]
     fn test_initializing_when_the_path_is_invalid_it_fails() {
-        match CommitLog::new(Path::new("/invalid/dir").to_path_buf(), 100) {
-            Err(e) => assert_eq!(e.kind(), std::io::ErrorKind::PermissionDenied),
+        match CommitLog::new(Path::new("\0").to_path_buf(), 100) {
+            Err(e) => assert_eq!(e.kind(), std::io::ErrorKind::InvalidInput),
             _ => assert!(false), // it should have failed
         }
     }
