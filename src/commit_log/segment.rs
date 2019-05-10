@@ -90,11 +90,9 @@ mod tests {
     }
 
     #[test]
+    #[should_panic]
     fn test_initializing_when_the_path_is_invalid_it_fails_accordingly() {
-        match Segment::new(Path::new("/invalid/dir/").to_path_buf(), 0, 100) {
-            Err(e) => assert_eq!(e.kind(), std::io::ErrorKind::NotFound),
-            _ => assert!(false), // it should have failed
-        }
+        Segment::new(Path::new("/invalid/dir/").to_path_buf(), 0, 100).unwrap();
     }
 
     #[test]
