@@ -3,6 +3,7 @@ mod segment;
 use self::segment::Segment;
 
 use std::fs;
+use std::io::{Error, ErrorKind};
 use std::path::PathBuf;
 
 pub struct CommitLog {
@@ -35,8 +36,14 @@ impl CommitLog {
     pub fn write(&mut self, buffer: &[u8]) -> Result<usize, std::io::Error> {
         let buffer_size = buffer.len();
 
-        //TODO find a better place for this
-        //TODO what if the buffer_size is bigger than the segment_size? loops forever
+        //TODO find a better place for this?
+        if buffer_size > self.segment_size {
+            return Err(Error::new(
+                ErrorKind::Other,
+                "Buffer size is bigger than segment size",
+            ));
+        }
+
         if buffer_size > self.active_segment().space_left() {
             let segments_size = self.segments.len();
             self.segments.push(Segment::new(
@@ -101,14 +108,11 @@ mod tests {
         let tmp_dir = tmp_file_path();
         fs::create_dir_all(tmp_dir.clone()).unwrap();
 
-        match CommitLog::new(tmp_dir, 100) {
-            Ok(_) => assert!(true),
-            _ => assert!(false),
-        };
+        CommitLog::new(tmp_dir, 100).unwrap();
     }
 
     #[test]
-    fn test_writing_when_segment_has_space_it_writes_to_it() {
+    fn test_writing_when_the_segment_has_space_it_writes_to_it() {
         let tmp_dir = tmp_file_path();
 
         let mut c = CommitLog::new(tmp_dir, 100).unwrap();
@@ -117,7 +121,7 @@ mod tests {
     }
 
     #[test]
-    fn test_writing_when_segment_has_no_space_it_rotates_to_a_new_segment() {
+    fn test_writing_when_the_segment_has_no_space_it_rotates_to_a_new_segment() {
         let tmp_dir = tmp_file_path();
 
         let mut c = CommitLog::new(tmp_dir, 100).unwrap();
@@ -129,14 +133,12 @@ mod tests {
         assert_eq!(c.write(b"a-bit-more-than-20-bytes").unwrap(), 24);
     }
 
-    // TODO implement a specific error for when the message is bigger than the segment
-    // #[test]
-    // fn test_writing_when_message_is_bigger_than_segment_size_it_errors() {
-    //     let mut tmp_dir = tmp_file_path();
+    #[test]
+    #[should_panic]
+    fn test_writing_when_the_buffer_is_bigger_than_segment_size_it_errors() {
+        let mut tmp_dir = tmp_file_path();
 
-    //     let mut c = CommitLog::new(tmp_dir, 10).unwrap();
-    //     c.write(b"").unwrap();
-
-    //     assert_eq!(c.write(b"this-should-have-about-80-bytes-but-not-really-sure-to-be-honest-maybe-it-doesn't").unwrap(), 24);
-    // }
+        let mut c = CommitLog::new(tmp_dir, 10).unwrap();
+        c.write(b"the-buffer-is-too-big").unwrap();
+    }
 }
