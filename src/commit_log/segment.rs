@@ -27,11 +27,12 @@ impl Segment {
             .create(true)
             .append(true)
             .open(path.join(format!("{:020}.log", offset)))?; //TODO improve file formatting
+        let size = file.metadata()?.len() as usize;
 
         Ok(Self {
             file: file,
             offset: offset,
-            size: 0, //TODO should it be zero?
+            size: size,
             max_size: max_size,
         })
     }
@@ -163,6 +164,29 @@ mod tests {
 
                         assert!(expected_file.as_path().exists());
                         assert_eq!(fs::read_to_string(expected_file).unwrap(), String::from("date-2104"));
+                    }
+
+                    it "respects the file size" {
+                        let tmp_dir = tmp_file_path();
+                        let expected_file = tmp_dir.clone().join("00000000000000000000.log");
+
+                        fs::create_dir_all(tmp_dir.clone()).unwrap();
+
+                        let mut file = File::create(expected_file.clone()).unwrap();
+                        file.write(b"initial-content-18").unwrap(); // occupies 18 bytes
+
+                        let mut s = Segment::new(tmp_dir.clone(), 0, 20).unwrap(); // set the limit to 20 bytes
+                        s.write(b"1").unwrap(); // should be able to write 1 byte (total 19)
+
+                        // should not be able to write another 16 bytes
+                        match s.write(b"this-should-error") {
+                            Ok(_) => assert!(false), // it should have errored
+                            Err(e) => {
+                                assert_eq!(e.kind(), std::io::ErrorKind::Other);
+                            }
+                        }
+
+                        assert_eq!(fs::read_to_string(expected_file).unwrap(), String::from("initial-content-181"));
                     }
                 }
             }
