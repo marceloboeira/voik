@@ -4,6 +4,7 @@ version = "0.1.0"
 authors = ["Marcelo Boeira <me@marceloboeira.com>"]
 
 [dependencies]
+dirs = "1.0.5"
 
 [dev-dependencies]
 speculate = "0.1"

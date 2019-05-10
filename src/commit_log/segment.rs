@@ -53,10 +53,12 @@ impl Segment {
     }
 
     //TODO create a SegmentReader/SegmentWriter?
+    #[allow(dead_code)]
     pub fn read(&mut self, buffer: &mut [u8]) -> Result<usize, Error> {
         self.file.read(buffer)
     }
 
+    #[allow(dead_code)]
     pub fn read_at(&mut self, buffer: &mut [u8], offset: usize) -> Result<usize, Error> {
         self.file.seek(SeekFrom::Start(offset as u64))?;
         self.file.read(buffer)
