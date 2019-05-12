@@ -17,16 +17,20 @@
     * [x] Write to segments
     * [x] Write across segments
     * [x] Read from segment
-    * [ ] Read across segments
-      * [ ] Index
+    * [x] Read across segments
+      * [x] Index
+      * [ ] Better API for reading
+    * [ ] Extract logfile from segment
     * [ ] Non-volatire storage (read from disk) Ref: (https://github.com/zowens/commitlog/blob/master/src/file_set.rs#L17-L98)
     * [ ] Memory Mapped IO (Performance test before/after)
-  * [ ] Topics/Streams (probably should come up with a better name)
-    * [ ] Partitions/Shards
-      * [ ] ?
-  * [ ] Performance tests
-    * [ ] Write
-    * [ ] Read
+  * [ ] Record
+    * [ ] End-to-end use of records
+* [ ] Topics/Streams (probably should come up with a better name)
+  * [ ] Partitions/Shards
+    * [ ] ?
+* [ ] Performance tests
+  * [ ] Write
+  * [ ] Read
 * [ ] Networking
   * [ ] Decide simple inicial protocol
   * [ ] Implement Basic Socket Communication
