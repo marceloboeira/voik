@@ -8,6 +8,40 @@ use std::fs;
 use std::io::{Error, ErrorKind};
 use std::path::PathBuf;
 
+/// CommitLog
+///
+/// The commit log is an abstraction that manages writes/reads to segments creating an append-only
+/// log. That's accomplished by storing a vector of Segments, and managing a pointer to the current
+/// segment.
+///
+/// Records can be written to the log, always appending the last record over and over.
+///
+/// Each time a record is written, the segment is trusted to have enough space for the given
+/// buffer, then the record is written to the current segment, and the pointer is updated.
+///
+///                          current cursor
+/// segment 0                       ^
+/// |-------------------------------|
+/// | record 0  |  record 1  |  ... |  --> time
+/// |-------------------------------|
+///
+/// When a segment is full, the commit log makes sure to rotate to a new one, closing the
+/// old one.
+///
+/// See how it looks like on disk (on a high-level):
+///                                                        current cursor
+/// segment 0                                                     ^
+/// |-------------------------------|                             |
+/// | record 0  |  record 1  |  ... | segment 1 (current)         |
+/// |-------------------------------|-----------------------------| --> time
+///                                 |  record 2  | record 3 | ... |
+///                                 |-----------------------------|
+///
+/// Under the hood is a bit more complex, the management of writing to the file to disk is
+/// of the Segments', as well as managing the Index file.
+///
+/// More info in the segment.rs and segment/index.rs files.
+///
 pub struct CommitLog {
     // Root directory for the Commitlog files
     path: PathBuf,

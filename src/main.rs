@@ -1,4 +1,4 @@
-mod commit_log;
+pub mod commit_log;
 
 extern crate dirs;
 

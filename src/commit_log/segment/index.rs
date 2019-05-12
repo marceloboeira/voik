@@ -12,7 +12,6 @@ use std::str;
 /// 00000000000011812312.log
 /// 00000000000011812312.idx
 ///
-///
 /// The role of the index is to provide pointers to records in the log file.
 /// Each entry of the index is 20 bytes long, 10 bytes are used for the offset address of the
 /// record in the log file, the other 10 bytes for the size of the record.
