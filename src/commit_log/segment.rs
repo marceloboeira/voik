@@ -1,11 +1,35 @@
+mod index;
+
+use self::index::Index;
 use std::fs::{File, OpenOptions};
 use std::io::{Error, ErrorKind, Read, Seek, SeekFrom, Write};
 use std::path::PathBuf;
 
+/// Segment
+///
+/// A wrapper for the log-file and the index
+///
+/// Every segment is composed of a logfile and an index, e.g.:
+///
+/// 00000000000011812312.log
+/// 00000000000011812312.idx
+///
+/// The role of the segment is to manage writes to the logfile and ensure
+/// the entries can be read later on by doing lookups on the index.
+///
+/// Every time a write happens, the segment writes an entry to the index
+/// with the record's position and size, for later use.
+///
+/// The segment also manages the size of the log file, preventing it from
+/// being written once it reaches the specified.
+///
 #[derive(Debug)]
 pub struct Segment {
     // File Descriptor
     file: File,
+
+    // Index file wrapper
+    index: Index,
 
     // Offset (Only used as name of the file at the moment)
     offset: usize,
@@ -29,11 +53,15 @@ impl Segment {
             .open(path.join(format!("{:020}.log", offset)))?; //TODO improve file formatting
         let size = file.metadata()?.len() as usize;
 
+        //TODO Improve this...
+        let index = Index::new(path.clone(), offset)?;
+
         Ok(Self {
-            file: file,
-            offset: offset,
-            size: size,
-            max_size: max_size,
+            file,
+            index,
+            offset,
+            size,
+            max_size,
         })
     }
 
@@ -48,6 +76,8 @@ impl Segment {
             return Err(Error::new(ErrorKind::Other, "No space left on the segment"));
         }
 
+        self.index
+            .write(index::Entry::new(self.size, buffer_size))?;
         self.size += buffer_size;
         self.file.write(buffer)
     }
