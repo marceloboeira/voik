@@ -27,7 +27,7 @@ install: build_release
 	$(CARGO_BIN) install --force
 
 .PHONY: test
-test: format
+test:
 	@$(CARGO_BIN) test --all-features
 
 .PHONY: test_watcher
