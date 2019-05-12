@@ -89,9 +89,18 @@ impl Segment {
     }
 
     #[allow(dead_code)]
-    pub fn read_at(&mut self, buffer: &mut [u8], offset: usize) -> Result<usize, Error> {
-        self.file.seek(SeekFrom::Start(offset as u64))?;
-        self.file.read(buffer)
+    pub fn read_at(&mut self, offset: usize) -> Result<Vec<u8>, Error> {
+        // We get the size/position from index
+        let e = self.index.read_at(offset)?;
+
+        // We seek the file to the moffset position
+        self.file.seek(SeekFrom::Start(e.offset as u64))?;
+
+        // load the buffer
+        let mut buf = vec![0u8; e.size];
+        self.file.read_exact(&mut buf)?;
+
+        Ok(buf)
     }
 }
 
@@ -242,14 +251,8 @@ mod tests {
         s.write(b"first-message").unwrap();
         s.write(b"second-message").unwrap();
 
-        let mut buffer1 = [0; 13];
-        s.read_at(&mut buffer1, 0).unwrap();
-
-        let mut buffer2 = [0; 14];
-        s.read_at(&mut buffer2, 13).unwrap();
-
-        assert_eq!(buffer1, *b"first-message");
-        assert_eq!(buffer2, *b"second-message");
+        assert_eq!(s.read_at(0).unwrap(), b"first-message");
+        assert_eq!(s.read_at(1).unwrap(), b"second-message");
     }
 
     #[test]

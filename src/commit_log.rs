@@ -61,6 +61,10 @@ impl CommitLog {
         let index = self.segments.len() - 1;
         &mut self.segments[index]
     }
+
+    pub fn read_at(&mut self, segment_index: usize, offset: usize) -> Result<Vec<u8>, Error> {
+        self.segments[segment_index].read_at(offset)
+    }
 }
 
 #[cfg(test)]
@@ -121,5 +125,23 @@ mod tests {
 
         let mut c = CommitLog::new(tmp_dir, 10).unwrap();
         c.write(b"the-buffer-is-too-big").unwrap();
+    }
+
+    #[test]
+    fn test_reads_at_a_given_position() {
+        let tmp_dir = tmp_file_path();
+
+        let mut c = CommitLog::new(tmp_dir, 50).unwrap();
+        c.write(b"this-has-less-20b").unwrap();
+        c.write(b"second-record").unwrap();
+        c.write(b"third-record-bigger-goes-to-another-segment")
+            .unwrap();
+
+        assert_eq!(c.read_at(0, 0).unwrap(), "this-has-less-20b".as_bytes());
+        assert_eq!(c.read_at(0, 1).unwrap(), "second-record".as_bytes());
+        assert_eq!(
+            c.read_at(1, 0).unwrap(),
+            "third-record-bigger-goes-to-another-segment".as_bytes()
+        );
     }
 }
