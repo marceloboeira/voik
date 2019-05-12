@@ -72,13 +72,12 @@ mod tests {
 
     #[test]
     #[should_panic]
-    fn test_initializing_when_the_path_is_invalid_it_fails() {
+    fn it_fails_to_initialize_when_the_path_is_invalid() {
         CommitLog::new(Path::new("\0").to_path_buf(), 100).unwrap();
     }
 
     #[test]
-    fn test_initializing_when_the_path_is_valid_and_the_folder_does_not_exist_it_creates_the_folder(
-    ) {
+    fn it_creates_the_folder_when_it_does_not_already_exist() {
         let tmp_dir = tmp_file_path();
         CommitLog::new(tmp_dir.clone(), 100).unwrap();
 
@@ -86,8 +85,7 @@ mod tests {
     }
 
     #[test]
-    fn test_initializing_when_the_path_is_valid_and_the_folder_already_exists_it_does_not_recreate_it(
-    ) {
+    fn it_does_not_recreate_the_folder_when_it_already_exist() {
         let tmp_dir = tmp_file_path();
         fs::create_dir_all(tmp_dir.clone()).unwrap();
 
@@ -95,7 +93,7 @@ mod tests {
     }
 
     #[test]
-    fn test_writing_when_the_segment_has_space_it_writes_to_it() {
+    fn it_writes_to_a_segment() {
         let tmp_dir = tmp_file_path();
 
         let mut c = CommitLog::new(tmp_dir, 100).unwrap();
@@ -104,7 +102,7 @@ mod tests {
     }
 
     #[test]
-    fn test_writing_when_the_segment_has_no_space_it_rotates_to_a_new_segment() {
+    fn it_writes_to_a_new_segment_when_full() {
         let tmp_dir = tmp_file_path();
 
         let mut c = CommitLog::new(tmp_dir, 100).unwrap();
@@ -118,7 +116,7 @@ mod tests {
 
     #[test]
     #[should_panic]
-    fn test_writing_when_the_buffer_is_bigger_than_segment_size_it_errors() {
+    fn it_fails_to_write_a_record_bigger_than_the_segment_size() {
         let tmp_dir = tmp_file_path();
 
         let mut c = CommitLog::new(tmp_dir, 10).unwrap();
