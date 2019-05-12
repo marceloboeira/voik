@@ -1,9 +1,11 @@
+extern crate memmap;
 mod index;
 
 use self::index::Index;
 use std::fs::{File, OpenOptions};
 use std::io::{Error, ErrorKind, Read, Seek, SeekFrom, Write};
 use std::path::PathBuf;
+use self::memmap::{Mmap, MmapMut};
 
 /// Segment
 ///
@@ -39,6 +41,12 @@ pub struct Segment {
 
     // Max size of the file in bytes
     max_size: usize,
+
+    /// Reader memory buffer
+    reader: Mmap,
+
+    /// Reader memory buffer
+    writer: MmapMut,
 }
 
 impl Segment {
@@ -49,19 +57,25 @@ impl Segment {
             .read(true)
             .write(true)
             .create(true)
-            .append(true)
             .open(path.join(format!("{:020}.log", offset)))?; //TODO improve file formatting
-        let size = file.metadata()?.len() as usize;
+        file.set_len(max_size as u64)?;
+        //let size = file.metadata()?.len() as usize;
 
-        //TODO Improve this...
+        //TODO Improve this..
         let index = Index::new(path.clone(), offset)?;
 
+        let reader = unsafe { Mmap::map(&file).expect("failed to map the file") };
+        let writer = unsafe { MmapMut::map_mut(&file).expect("failed to map the file") };
+
         Ok(Self {
-            file,
-            index,
-            offset,
-            size,
-            max_size,
+            file: file,
+            index: index,
+            offset: offset,
+            size: 0, //TODO improve this,
+                     // it's zero to set the correct cursor, but if the file was opened it must be the size
+            max_size: max_size,
+            reader: reader,
+            writer: writer,
         })
     }
 
@@ -76,10 +90,20 @@ impl Segment {
             return Err(Error::new(ErrorKind::Other, "No space left on the segment"));
         }
 
+        //TODO check index capacity before the attempt to write
         self.index
             .write(index::Entry::new(self.size, buffer_size))?;
+
+        let from = self.size;
+        let to = from + buffer_size;
         self.size += buffer_size;
-        self.file.write(buffer)
+
+        (&mut self.writer[from..=to]).write(buffer)
+    }
+
+    pub fn flush(&mut self) {
+        self.writer.flush().unwrap();
+        self.index.flush();
     }
 
     //TODO create a SegmentReader/SegmentWriter?

@@ -1,3 +1,5 @@
+extern crate memmap;
+
 mod segment;
 #[cfg(feature = "test-prelude")]
 mod test;
@@ -82,6 +84,7 @@ impl CommitLog {
 
         if buffer_size > self.active_segment().space_left() {
             let segments_size = self.segments.len();
+            self.active_segment().flush();
             self.segments.push(Segment::new(
                 self.path.clone(),
                 segments_size,

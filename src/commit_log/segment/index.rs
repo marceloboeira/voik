@@ -1,7 +1,10 @@
+extern crate memmap;
+
 use std::fs::{File, OpenOptions};
 use std::io::{Error, Read, Seek, SeekFrom, Write};
 use std::path::PathBuf;
 use std::str;
+use self::memmap::{Mmap, MmapMut};
 
 /// Index
 ///
@@ -25,10 +28,16 @@ use std::str;
 ///
 #[derive(Debug)]
 pub struct Index {
-    // File Descriptor
+    /// File Descriptor
     file: File,
 
-    // Current size of the index in bytes
+    /// Reader memory buffer
+    reader: Mmap,
+
+    /// Reader memory buffer
+    writer: MmapMut,
+
+    /// Current size of the index in bytes
     offset: usize,
 }
 
@@ -42,19 +51,34 @@ impl Index {
             .read(true)
             .write(true)
             .create(true)
-            .append(true)
             .open(path.join(format!("{:020}.idx", offset)))?; //TODO improve file formatting
 
+        // TODO find a better way of setting up the index file size
+        file.set_len(10 * 1_048_576).unwrap();
+
+        let reader = unsafe { Mmap::map(&file).expect("failed to map the file") };
+        let writer = unsafe { MmapMut::map_mut(&file).expect("failed to map the file") };
+
         Ok(Self {
-            offset: file.metadata()?.len() as usize,
+            offset: 0,
             file: file,
+            reader: reader,
+            writer: writer,
         })
     }
 
     /// Writes an entry to the index
     pub fn write(&mut self, entry: Entry) -> Result<usize, Error> {
         // TODO set the file to its end since the read can seek to specific parts
-        self.file.write(entry.to_string().as_bytes())
+        let from = self.offset;
+        let to = from + ENTRY_SIZE;
+        self.offset += ENTRY_SIZE;
+
+        (&mut self.writer[from..=to]).write(entry.to_string().as_bytes())
+    }
+
+    pub fn flush(&mut self) {
+        self.writer.flush().unwrap();
     }
 
     /// Reads an entry from the index

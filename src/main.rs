@@ -13,8 +13,8 @@ fn main() -> Result<(), std::io::Error> {
     fs::remove_dir_all(target_path.clone())?;
     println!("👵 loglady logging to {:?}", target_path);
 
-    let segment_size = 100;
-    let total_messages = 100;
+    let segment_size = 5_000_000;
+    let total_messages = 10_000;
     let mut clog = CommitLog::new(target_path, segment_size)?;
 
     let start = SystemTime::now();
@@ -33,18 +33,15 @@ fn main() -> Result<(), std::io::Error> {
     loop {
         match clog.read_at(i, j) {
             Ok(s) => {
-                println!("ok");
                 segment_error = false;
                 j += 1;
-                println!("{:?}", String::from_utf8(s));
+                println!("{}", String::from_utf8(s).unwrap());
             }
             _ => {
                 println!("nope1");
                 if segment_error {
-                    println!("nope2");
                     break;
                 } else {
-                    println!("nope3");
                     segment_error = true;
                     i += 1;
                     j = 0;
