@@ -27,19 +27,19 @@ use self::memmap::{Mmap, MmapMut};
 ///
 #[derive(Debug)]
 pub struct Segment {
-    // File Descriptor
+    /// File Descriptor
     file: File,
 
-    // Index file wrapper
+    /// Index file wrapper
     index: Index,
 
-    // Offset (Only used as name of the file at the moment)
+    /// Offset (Only used as name of the file at the moment)
     offset: usize,
 
-    // Current size of the file in bytes
+    /// Current size of the file in bytes
     size: usize,
 
-    // Max size of the file in bytes
+    /// Max size of the file in bytes
     max_size: usize,
 
     /// Reader memory buffer
@@ -50,7 +50,7 @@ pub struct Segment {
 }
 
 impl Segment {
-    pub fn new(path: PathBuf, offset: usize, max_size: usize) -> Result<Self, Error> {
+    pub fn new(path: PathBuf, offset: usize, max_size: usize, max_index_size: usize) -> Result<Self, Error> {
         //TODO we never close this file, ...
         //TODO should we truncate the file instead of appending?
         let file = OpenOptions::new()
@@ -62,7 +62,7 @@ impl Segment {
         //let size = file.metadata()?.len() as usize;
 
         //TODO Improve this..
-        let index = Index::new(path.clone(), offset)?;
+        let index = Index::new(path.clone(), offset, max_index_size)?;
 
         let reader = unsafe { Mmap::map(&file).expect("failed to map the file") };
         let writer = unsafe { MmapMut::map_mut(&file).expect("failed to map the file") };
@@ -138,7 +138,7 @@ mod tests {
     #[test]
     #[should_panic]
     fn it_fails_when_the_dir_is_invalid() {
-        Segment::new(Path::new("/invalid/dir/").to_path_buf(), 0, 100).unwrap();
+        Segment::new(Path::new("/invalid/dir/").to_path_buf(), 0, 100, 1000).unwrap();
     }
 
     #[test]
@@ -147,7 +147,7 @@ mod tests {
         fs::create_dir_all(tmp_dir.clone()).unwrap();
         let expected_file = tmp_dir.clone().join("00000000000000000000.log");
 
-        Segment::new(tmp_dir.clone(), 0, 10).unwrap();
+        Segment::new(tmp_dir.clone(), 0, 10, 1000).unwrap();
 
         assert!(expected_file.as_path().exists());
     }
@@ -162,7 +162,7 @@ mod tests {
         let mut file = File::create(expected_file.clone()).unwrap();
         file.write(b"2104").unwrap();
 
-        Segment::new(tmp_dir.clone(), 0, 100).unwrap();
+        Segment::new(tmp_dir.clone(), 0, 100, 1000).unwrap();
 
         assert!(expected_file.as_path().exists());
         assert_eq!(
@@ -178,7 +178,7 @@ mod tests {
 
         fs::create_dir_all(tmp_dir.clone()).unwrap();
 
-        let mut s = Segment::new(tmp_dir.clone(), 0, 100).unwrap();
+        let mut s = Segment::new(tmp_dir.clone(), 0, 100, 1000).unwrap();
         s.write(b"2104").unwrap();
 
         assert!(expected_file.as_path().exists());
@@ -220,7 +220,7 @@ mod tests {
         let mut file = File::create(expected_file.clone()).unwrap();
         file.write(b"initial-content-18").unwrap(); // occupies 18 bytes
 
-        let mut s = Segment::new(tmp_dir.clone(), 0, 20).unwrap(); // set the limit to 20 bytes
+        let mut s = Segment::new(tmp_dir.clone(), 0, 20, 1000).unwrap(); // set the limit to 20 bytes
         s.write(b"1").unwrap(); // should be able to write 1 byte (total 19)
 
         assert_eq!(
@@ -239,7 +239,7 @@ mod tests {
         let expected_file = tmp_dir.clone().join("00000000000000000000.log");
         fs::create_dir_all(tmp_dir.clone()).unwrap();
 
-        let mut s = Segment::new(tmp_dir.clone(), 0, 20).unwrap();
+        let mut s = Segment::new(tmp_dir.clone(), 0, 20, 1000).unwrap();
         s.write(b"this-has-17-bytes").unwrap();
 
         assert_eq!(
@@ -259,7 +259,7 @@ mod tests {
         let mut file = File::create(expected_file.clone()).unwrap();
         file.write(b"2104").unwrap();
 
-        let mut s = Segment::new(tmp_dir.clone(), 0, 20).unwrap();
+        let mut s = Segment::new(tmp_dir.clone(), 0, 20, 2000).unwrap();
 
         let mut buffer = [0; 4];
         s.read(&mut buffer).unwrap();
@@ -271,7 +271,7 @@ mod tests {
     fn it_reads_at_a_given_location() {
         let tmp_dir = tmp_file_path();
         fs::create_dir_all(tmp_dir.clone()).unwrap();
-        let mut s = Segment::new(tmp_dir.clone(), 0, 100).unwrap();
+        let mut s = Segment::new(tmp_dir.clone(), 0, 100, 1000).unwrap();
 
         s.write(b"first-message").unwrap();
         s.write(b"second-message").unwrap();
@@ -285,7 +285,7 @@ mod tests {
         let tmp_dir = tmp_file_path();
         fs::create_dir_all(tmp_dir.clone()).unwrap();
 
-        let mut s = Segment::new(tmp_dir.clone(), 0, 100).unwrap();
+        let mut s = Segment::new(tmp_dir.clone(), 0, 100, 1000).unwrap();
         s.write(b"this-has-17-bytes").unwrap();
 
         assert_eq!(s.space_left(), 100 - 17)

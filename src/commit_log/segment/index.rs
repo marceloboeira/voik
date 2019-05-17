@@ -31,13 +31,19 @@ pub struct Index {
     /// File Descriptor
     file: File,
 
-    /// Reader memory buffer
+    /// Reader memory map buffer
     reader: Mmap,
 
-    /// Reader memory buffer
+    /// Writer memory map buffer
     writer: MmapMut,
 
-    /// Current size of the index in bytes
+    /// Max size of the index
+    max_size: usize,
+
+    /// Base offset of the index across the commit-log
+    base_offset: usize,
+
+    /// Current size of the index in bytes (used as a cursor when writing)
     offset: usize,
 }
 
@@ -46,21 +52,22 @@ const ENTRY_SIZE: usize = 20;
 
 impl Index {
     /// Creates a new Index / reads the existing Index
-    pub fn new(path: PathBuf, offset: usize) -> Result<Self, Error> {
+    pub fn new(path: PathBuf, base_offset: usize, max_size: usize) -> Result<Self, Error> {
         let file = OpenOptions::new()
             .read(true)
             .write(true)
             .create(true)
-            .open(path.join(format!("{:020}.idx", offset)))?; //TODO improve file formatting
+            .open(path.join(format!("{:020}.idx", base_offset)))?; //TODO improve file formatting
 
-        // TODO find a better way of setting up the index file size
-        file.set_len(10 * 1_048_576).unwrap();
+        file.set_len(max_size as u64).unwrap();
 
         let reader = unsafe { Mmap::map(&file).expect("failed to map the file") };
         let writer = unsafe { MmapMut::map_mut(&file).expect("failed to map the file") };
 
         Ok(Self {
-            offset: 0,
+            base_offset: base_offset,
+            max_size: max_size,
+            offset: 0, //TODO should be 0 when creating, but should read the file's one when reopening
             file: file,
             reader: reader,
             writer: writer,
@@ -69,7 +76,6 @@ impl Index {
 
     /// Writes an entry to the index
     pub fn write(&mut self, entry: Entry) -> Result<usize, Error> {
-        // TODO set the file to its end since the read can seek to specific parts
         let from = self.offset;
         let to = from + ENTRY_SIZE;
         self.offset += ENTRY_SIZE;
@@ -146,12 +152,11 @@ mod tests {
 
     /// Index tests
     #[test]
-    fn test_write() {
+    fn test_write_to_a_new_file() {
         let tmp_dir = tmp_file_path();
         fs::create_dir_all(tmp_dir.clone()).unwrap();
-        let expected_file = tmp_dir.clone().join("00000000000000000000.idx");
 
-        let mut i = Index::new(tmp_dir.clone(), 0).unwrap();
+        let mut i = Index::new(tmp_dir.clone(), 0, 1000).unwrap();
 
         i.write(Entry::new(0, 12)).unwrap();
         i.write(Entry::new(12, 15)).unwrap();

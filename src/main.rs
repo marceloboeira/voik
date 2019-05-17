@@ -14,8 +14,9 @@ fn main() -> Result<(), std::io::Error> {
     println!("⚫️ voik logging to {:?}", target_path);
 
     let segment_size = 5_000_000;
+    let index_size = 5_000_000;
     let total_messages = 10_000;
-    let mut clog = CommitLog::new(target_path, segment_size)?;
+    let mut clog = CommitLog::new(target_path, segment_size, index_size)?;
 
     let start = SystemTime::now();
     for i in 0..total_messages {

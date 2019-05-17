@@ -45,29 +45,33 @@ use std::path::PathBuf;
 /// More info in the segment.rs and segment/index.rs files.
 ///
 pub struct CommitLog {
-    // Root directory for the Commitlog files
+    /// Root directory for the Commitlog files
     path: PathBuf,
 
-    // Size in bytes for the segments
+    /// Size in bytes for the segments
     segment_size: usize,
 
-    // List of segments
+    /// Size in bytes for the index
+    index_size: usize,
+
+    /// List of segments
     segments: Vec<Segment>, //TODO if too many Segments are created, and not "garbage collected", we have too many files opened
 }
 
 impl CommitLog {
-    pub fn new(path: PathBuf, segment_size: usize) -> Result<Self, std::io::Error> {
+    pub fn new(path: PathBuf, segment_size: usize, index_size: usize) -> Result<Self, std::io::Error> {
         if !path.as_path().exists() {
             fs::create_dir_all(path.clone())?;
         }
 
         //TODO figure it out the segment starting in 0, should we truncate the file?
-        let segments = vec![Segment::new(path.clone(), 0, segment_size)?];
+        let segments = vec![Segment::new(path.clone(), 0, segment_size, index_size)?];
 
         Ok(Self {
             path: path,
             segments: segments,
             segment_size: segment_size,
+            index_size: index_size,
         })
     }
 
@@ -89,6 +93,7 @@ impl CommitLog {
                 self.path.clone(),
                 segments_size,
                 self.segment_size,
+                self.index_size,
             )?);
         }
         self.active_segment().write(buffer)
@@ -114,13 +119,13 @@ mod tests {
     #[test]
     #[should_panic]
     fn it_fails_to_initialize_when_the_path_is_invalid() {
-        CommitLog::new(Path::new("\0").to_path_buf(), 100).unwrap();
+        CommitLog::new(Path::new("\0").to_path_buf(), 100, 10000).unwrap();
     }
 
     #[test]
     fn it_creates_the_folder_when_it_does_not_already_exist() {
         let tmp_dir = tmp_file_path();
-        CommitLog::new(tmp_dir.clone(), 100).unwrap();
+        CommitLog::new(tmp_dir.clone(), 100, 1000).unwrap();
 
         assert!(tmp_dir.as_path().exists());
     }
@@ -130,14 +135,14 @@ mod tests {
         let tmp_dir = tmp_file_path();
         fs::create_dir_all(tmp_dir.clone()).unwrap();
 
-        CommitLog::new(tmp_dir, 100).unwrap();
+        CommitLog::new(tmp_dir, 100, 1000).unwrap();
     }
 
     #[test]
     fn it_writes_to_a_segment() {
         let tmp_dir = tmp_file_path();
 
-        let mut c = CommitLog::new(tmp_dir, 100).unwrap();
+        let mut c = CommitLog::new(tmp_dir, 100, 1000).unwrap();
 
         assert_eq!(c.write(b"this-has-less-than-100-bytes").unwrap(), 28);
     }
@@ -146,7 +151,7 @@ mod tests {
     fn it_writes_to_a_new_segment_when_full() {
         let tmp_dir = tmp_file_path();
 
-        let mut c = CommitLog::new(tmp_dir, 100).unwrap();
+        let mut c = CommitLog::new(tmp_dir, 100, 1000).unwrap();
         c.write(
             b"this-should-have-about-80-bytes-but-not-really-sure-to-be-honest-maybe-it-doesn't",
         )
@@ -160,7 +165,7 @@ mod tests {
     fn it_fails_to_write_a_record_bigger_than_the_segment_size() {
         let tmp_dir = tmp_file_path();
 
-        let mut c = CommitLog::new(tmp_dir, 10).unwrap();
+        let mut c = CommitLog::new(tmp_dir, 10, 10000).unwrap();
         c.write(b"the-buffer-is-too-big").unwrap();
     }
 
@@ -168,7 +173,7 @@ mod tests {
     fn test_reads_at_a_given_position() {
         let tmp_dir = tmp_file_path();
 
-        let mut c = CommitLog::new(tmp_dir, 50).unwrap();
+        let mut c = CommitLog::new(tmp_dir, 50, 10000).unwrap();
         c.write(b"this-has-less-20b").unwrap();
         c.write(b"second-record").unwrap();
         c.write(b"third-record-bigger-goes-to-another-segment")
