@@ -20,40 +20,41 @@ Checkout the Roadmap for feature-specific details.
 ## Roadmap
 
 * [x] Settle for a name
-* [ ] Core CommitLog
-  * [ ] Segments
-    * [x] Write to segments
-    * [x] Write across segments
-    * [x] Read from segment
-    * [x] Read across segments
-      * [x] Index
-      * [ ] Better API for reading
-    * [ ] Extract logfile from segment
-    * [ ] Non-volatire storage (read from disk) Ref: (https://github.com/zowens/commitlog/blob/master/src/file_set.rs#L17-L98)
-    * [ ] Memory Mapped IO (Performance test before/after)
-      * [ ] Write
+* [ ] Storage
+  * [ ] Core CommitLog
+    * [ ] Segments
+      * [x] Write to segments
+      * [x] Write across segments
+      * [x] Read from segment
+      * [x] Read across segments
         * [x] Index
-        * [x] Segment
-        * [ ] Refactor segment split to take index into account
-      * [ ] Read
-        * [ ] Index
-        * [ ] Segment
-  * [ ] Record
-    * [ ] End-to-end use of records
-* [ ] Topics/Streams (probably should come up with a better name)
-  * [ ] Partitions/Shards
-    * [ ] ?
-* [ ] Performance tests
-  * [ ] Write
-  * [ ] Read
-* [ ] Networking
+        * [ ] Better API for reading
+      * [ ] Extract logfile from segment
+      * [ ] Non-volatire storage (read from disk) Ref: (https://github.com/zowens/commitlog/blob/master/src/file_set.rs#L17-L98)
+      * [ ] Memory Mapped IO (Performance test before/after)
+        * [ ] Write
+          * [x] Index
+          * [x] Segment
+          * [ ] Refactor segment split to take index into account
+        * [ ] Read
+          * [ ] Index
+          * [ ] Segment
+    * [ ] Record Struct
+      * [ ] End-to-end use of records
+  * [ ] Topics/Streams (probably should come up with a better name)
+    * [ ] Partitions/Shards
+      * [ ] ?
+* [ ] Networking/API
   * [ ] Decide simple inicial protocol
   * [ ] Implement Basic Socket Communication
   * [ ] Implement TCP/HTTP?
-  * [ ] Write to segments over the network
+  * [ ] Write to streams over the network
   * [ ] zero-cost copy (OS sendfile)
-* [ ] Configuration
-  * [ ] CLI Basics
+* [ ] Replication
+  * [ ] More to come here...
+* [ ] Operational
+  * [ ] Configuration
+    * [ ] CLI Basics
 * [ ] CI/Tooling
   * [ ] Setup Travis
     * [ ] Build with Linux/macOS
@@ -61,6 +62,8 @@ Checkout the Roadmap for feature-specific details.
     * [ ] Alpine
 * [ ] Testing
   * [ ] Benchmarks
+    * [ ] Write
+    * [ ] Read
   * [ ] Setup Integration Tests
   * [ ] Abstract Test Code
 * [ ] Documentation
