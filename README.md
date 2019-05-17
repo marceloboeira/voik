@@ -1,7 +1,13 @@
 <p align="center">
   <img src="https://github.com/marceloboeira/voik/blob/master/docs/logos/logo_transparent.png?raw=true" width="500">
-  <p align="center">an experiment on persistent data-streaming<p>
+  <p align="center">An experiment on persistent data-streaming<p>
 </p>
+
+## Status
+
+Currently, working on foundation of the storage layer.
+
+Checkout the Roadmap for feature-specific details.
 
 ## Project Goals
 
