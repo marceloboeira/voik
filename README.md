@@ -1,5 +1,7 @@
-# loglady
-> loglady has a story for you
+<p align="center">
+  <img src="https://github.com/marceloboeira/voik/blob/master/docs/logos/logo_transparent.png?raw=true" width="500">
+  <p align="center">an experiment on persistent data-streaming<p>
+</p>
 
 ## Project Goals
 
@@ -11,7 +13,7 @@
 
 ## Roadmap
 
-* [ ] Settle for a name
+* [x] Settle for a name
 * [ ] Core CommitLog
   * [ ] Segments
     * [x] Write to segments
@@ -23,6 +25,13 @@
     * [ ] Extract logfile from segment
     * [ ] Non-volatire storage (read from disk) Ref: (https://github.com/zowens/commitlog/blob/master/src/file_set.rs#L17-L98)
     * [ ] Memory Mapped IO (Performance test before/after)
+      * [ ] Write
+        * [x] Index
+        * [x] Segment
+        * [ ] Refactor segment split to take index into account
+      * [ ] Read
+        * [ ] Index
+        * [ ] Segment
   * [ ] Record
     * [ ] End-to-end use of records
 * [ ] Topics/Streams (probably should come up with a better name)

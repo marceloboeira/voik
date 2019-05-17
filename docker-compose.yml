@@ -6,9 +6,9 @@ services:
       context: .
       dockerfile: Dockerfile.test
     command: ["funzzy"]
-    working_dir: "/loglady"
+    working_dir: "/voik"
     volumes:
-      - .:/loglady
+      - .:/voik
     tty: true
     environment:
         - TERM=xterm-256color

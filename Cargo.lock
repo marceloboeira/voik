@@ -122,15 +122,6 @@ version = "0.2.54"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 
 [[package]]
-name = "loglady"
-version = "0.1.0"
-dependencies = [
- "dirs 1.0.5 (registry+https://github.com/rust-lang/crates.io-index)",
- "memmap 0.7.0 (registry+https://github.com/rust-lang/crates.io-index)",
- "rand 0.6.5 (registry+https://github.com/rust-lang/crates.io-index)",
-]
-
-[[package]]
 name = "memmap"
 version = "0.7.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -315,6 +306,15 @@ dependencies = [
 name = "unicode-xid"
 version = "0.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
+
+[[package]]
+name = "voik"
+version = "0.1.0"
+dependencies = [
+ "dirs 1.0.5 (registry+https://github.com/rust-lang/crates.io-index)",
+ "memmap 0.7.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "rand 0.6.5 (registry+https://github.com/rust-lang/crates.io-index)",
+]
 
 [[package]]
 name = "winapi"

@@ -8,10 +8,10 @@ use std::time::SystemTime;
 
 fn main() -> Result<(), std::io::Error> {
     let mut target_path = dirs::home_dir().unwrap();
-    target_path.push("loglady/");
+    target_path.push("voik/");
 
     fs::remove_dir_all(target_path.clone())?;
-    println!("👵 loglady logging to {:?}", target_path);
+    println!("⚫️ voik logging to {:?}", target_path);
 
     let segment_size = 5_000_000;
     let total_messages = 10_000;

@@ -1,7 +1,7 @@
 CARGO_BIN ?= `which cargo`
 TARGET_PATH ?= `pwd`/target/release
 BIN_VERSION ?= 0.1.0
-BIN_NAME ?= loglady
+BIN_NAME ?= voik
 BIN_PATH ?= $(TARGET_PATH)/$(BIN_NAME)
 FUNZZY_BIN ?= `which funzzy`
 COMPOSE ?= `which docker-compose`
