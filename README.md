@@ -32,13 +32,13 @@ Checkout the Roadmap for feature-specific details.
       * [x] Read across segments
         * [x] Index
         * [ ] Better API for reading
-      * [ ] Extract logfile from segment
-      * [ ] Non-volatire storage (read from disk) Ref: (https://github.com/zowens/commitlog/blob/master/src/file_set.rs#L17-L98)
+      * [x] Extract logfile from segment
+      * [ ] Non-volatile storage (read from disk) Ref: (https://github.com/zowens/commitlog/blob/master/src/file_set.rs#L17-L98)
       * [ ] Memory Mapped IO (Performance test before/after)
         * [ ] Write
           * [x] Index
           * [x] Segment
-          * [ ] Refactor segment split to take index into account
+          * [x] Refactor segment split to take index into account
         * [ ] Read
           * [ ] Index
           * [ ] Segment
