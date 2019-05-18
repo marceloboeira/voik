@@ -1,10 +1,10 @@
 extern crate memmap;
 
-use std::fs::{File, OpenOptions};
-use std::io::{Error, Read, Seek, SeekFrom, Write};
-use std::path::PathBuf;
-use std::str;
 use self::memmap::{Mmap, MmapMut};
+use std::fs::{File, OpenOptions};
+use std::io::{Error, ErrorKind, Read, Seek, SeekFrom, Write};
+use std::path::PathBuf;
+use std::str::from_utf8_unchecked;
 
 /// Index
 ///
@@ -74,17 +74,20 @@ impl Index {
         })
     }
 
-    /// Writes an entry to the index
-    pub fn write(&mut self, entry: Entry) -> Result<usize, Error> {
-        let from = self.offset;
-        let to = from + ENTRY_SIZE;
-        self.offset += ENTRY_SIZE;
-
-        (&mut self.writer[from..=to]).write(entry.to_string().as_bytes())
+    /// Check if the given amount of entries fit
+    pub fn fit(&mut self, entry: usize) -> bool {
+        self.max_size > (self.offset + (entry * ENTRY_SIZE))
     }
 
-    pub fn flush(&mut self) {
-        self.writer.flush().unwrap();
+    /// Writes an entry to the index
+    pub fn write(&mut self, entry: Entry) -> Result<usize, Error> {
+        if !self.fit(1) {
+            return Err(Error::new(ErrorKind::Other, "No space left in the index"));
+        }
+        self.offset += ENTRY_SIZE;
+
+        (&mut self.writer[(self.offset - ENTRY_SIZE)..=(self.offset)])
+            .write(entry.to_string().as_bytes())
     }
 
     /// Reads an entry from the index
@@ -92,21 +95,38 @@ impl Index {
         let seek = (offset * ENTRY_SIZE) as u64;
         self.file.seek(SeekFrom::Start(seek))?;
 
-        // TODO avoid panics... throw the error up
         // TODO avoid reading 2 times from the file
         // TODO avoid parsing to string -> usize...
-        //reads 10 pieces at a time
         let mut buffer = [0; 10]; //TODO use entry-size/2
 
-        // Reads
-        self.file.read(&mut buffer)?;
-        let position = str::from_utf8(&buffer).unwrap().parse::<usize>().unwrap();
-
         //reads 10 pieces at a time
         self.file.read(&mut buffer)?;
-        let size = str::from_utf8(&buffer).unwrap().parse::<usize>().unwrap();
+
+        let position = unsafe {
+            match from_utf8_unchecked(&buffer).parse::<usize>() {
+                Ok(pi) => pi,
+                _ => {
+                    return Err(Error::new(ErrorKind::Other, "Error parsing position from index"));
+                }
+            }
+        };
+
+        //reads 10 bytes at a time
+        self.file.read(&mut buffer)?;
+        let size = unsafe {
+            match from_utf8_unchecked(&buffer).parse::<usize>() {
+                Ok(ps) => ps,
+                _ => {
+                    return Err(Error::new(ErrorKind::Other, "Error parsing size from index"));
+                },
+            }
+        };
 
         Ok(Entry::new(position, size))
+    }
+
+    pub fn flush(&mut self) -> Result<(), Error> {
+        self.writer.flush_async()
     }
 }
 

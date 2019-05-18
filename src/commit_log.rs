@@ -59,7 +59,7 @@ pub struct CommitLog {
 }
 
 impl CommitLog {
-    pub fn new(path: PathBuf, segment_size: usize, index_size: usize) -> Result<Self, std::io::Error> {
+    pub fn new(path: PathBuf, segment_size: usize, index_size: usize) -> Result<Self, Error> {
         if !path.as_path().exists() {
             fs::create_dir_all(path.clone())?;
         }
@@ -75,7 +75,7 @@ impl CommitLog {
         })
     }
 
-    pub fn write(&mut self, buffer: &[u8]) -> Result<usize, std::io::Error> {
+    pub fn write(&mut self, buffer: &[u8]) -> Result<usize, Error> {
         let buffer_size = buffer.len();
 
         //TODO find a better place for this?
@@ -86,9 +86,13 @@ impl CommitLog {
             ));
         }
 
-        if buffer_size > self.active_segment().space_left() {
+        //TODO find a better place for this?
+        if !self.active_segment().fit(buffer_size) {
             let segments_size = self.segments.len();
-            self.active_segment().flush();
+
+            //TODO close/truncate segment
+            self.active_segment().flush()?;
+
             self.segments.push(Segment::new(
                 self.path.clone(),
                 segments_size,
@@ -96,6 +100,7 @@ impl CommitLog {
                 self.index_size,
             )?);
         }
+
         self.active_segment().write(buffer)
     }
 
@@ -105,6 +110,9 @@ impl CommitLog {
     }
 
     pub fn read_at(&mut self, segment_index: usize, offset: usize) -> Result<Vec<u8>, Error> {
+        if segment_index >= self.segments.len() {
+            return Err(Error::new(ErrorKind::Other, "Segment not available"));
+        }
         self.segments[segment_index].read_at(offset)
     }
 }

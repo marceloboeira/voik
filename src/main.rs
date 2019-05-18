@@ -15,7 +15,7 @@ fn main() -> Result<(), std::io::Error> {
 
     let segment_size = 5_000_000;
     let index_size = 5_000_000;
-    let total_messages = 10_000;
+    let total_messages = 1_000_000;
     let mut clog = CommitLog::new(target_path, segment_size, index_size)?;
 
     let start = SystemTime::now();
@@ -23,26 +23,33 @@ fn main() -> Result<(), std::io::Error> {
         clog.write(format!("m-{:010}", i).as_bytes())?;
     }
 
-    let ms = SystemTime::now()
-        .duration_since(start)
-        .expect("Time went backwards");
-    println!("{} messages written in {:?}", total_messages, ms);
+    let write_time = SystemTime::now();
+    println!(
+        "{} messages written in {:?}",
+        total_messages,
+        write_time
+            .duration_since(start)
+            .expect("Time went backwards")
+    );
 
+    // TODO implement a better way of READING sequencially, PLEASE
+    // Read from first record, on the first segment
     let mut i = 0;
     let mut j = 0;
     let mut segment_error = false;
     loop {
         match clog.read_at(i, j) {
-            Ok(s) => {
+            Ok(_) => {
                 segment_error = false;
                 j += 1;
-                println!("{}", String::from_utf8(s).unwrap());
+                //println!("{}", String::from_utf8(s).unwrap());
             }
             _ => {
-                println!("nope1");
                 if segment_error {
+                    //println!("error 2 {:?}", e);
                     break;
                 } else {
+                    //println!("error 1 {:?}", e);
                     segment_error = true;
                     i += 1;
                     j = 0;
@@ -51,10 +58,13 @@ fn main() -> Result<(), std::io::Error> {
         }
     }
 
-    let ms = SystemTime::now()
-        .duration_since(start)
-        .expect("Time went backwards");
-    println!("{} messages read in {:?}", total_messages, ms);
+    println!(
+        "{} messages read in {:?}",
+        total_messages,
+        SystemTime::now()
+            .duration_since(write_time)
+            .expect("Time went backwards")
+    );
 
     Ok(())
 }
