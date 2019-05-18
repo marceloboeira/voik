@@ -99,3 +99,4 @@ Checkout the Roadmap for feature-specific details.
 * Code
   * [travisjeffery/Jocko](https://github.com/travisjeffery/jocko) - Distributed commit log service in Go
   * [zowens/commitlog](http://github.com/zowens/commitlog) - Append-only commit log library for Rust
+  * [liftbridge-io/liftbridge](http://github.com/liftbridge-io/liftbridge) - Lightweight, fault-tolerant message streams
