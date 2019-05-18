@@ -37,6 +37,7 @@ pub struct Segment {
 }
 
 impl Segment {
+    /// Return a new segment
     pub fn new(
         path: PathBuf,
         offset: usize,
@@ -55,21 +56,24 @@ impl Segment {
         self.log.fit(buffer_size) && self.index.fit(1)
     }
 
+    /// Write the buffer to the log, also making sure to create an index entry
     pub fn write(&mut self, buffer: &[u8]) -> Result<usize, Error> {
         self.index
             .write(index::Entry::new(self.log.offset(), buffer.len()))?;
         self.log.write(buffer)
     }
 
+    /// Read the log at a given index offset
     pub fn read_at(&mut self, offset: usize) -> Result<Vec<u8>, Error> {
         let entry = self.index.read_at(offset)?;
 
         self.log.read_at(entry.offset, entry.size)
     }
 
+    /// Flush both the index and the log to ensure persistence
     pub fn flush(&mut self) -> Result<(), Error> {
-        self.log.flush()?;
-        self.index.flush()
+        self.index.flush()?;
+        self.log.flush()
     }
 }
 

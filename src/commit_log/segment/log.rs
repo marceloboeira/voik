@@ -47,7 +47,7 @@ pub struct Log {
 }
 
 impl Log {
-    /// Creates a new log file, from the scratch.
+    /// Create a new log file, from the scratch.
     pub fn new(path: PathBuf, base_offset: usize, max_size: usize) -> Result<Self, Error> {
         //TODO we never close this file, ...
         //TODO should we truncate the file instead of appending?
@@ -56,6 +56,7 @@ impl Log {
             .write(true)
             .create(true)
             .open(path.join(format!("{:020}.log", base_offset)))?; //TODO improve file formatting
+
         file.set_len(max_size as u64)?;
 
         //TODO improve this, it's zero to set the correct cursor, but if the file was opened it must be the size
@@ -82,10 +83,15 @@ impl Log {
 
     /// Check is a given buffer size fits in this log-file
     pub fn fit(&mut self, buffer_size: usize) -> bool {
-        self.space_left() > buffer_size
+        (self.max_size - self.offset) >= buffer_size
     }
 
-    /// Writes a buffer to the log-file
+    /// Flush to ensure the content on memory is written to the file
+    pub fn flush(&mut self) -> Result<(), Error> {
+        self.writer.flush_async()
+    }
+
+    /// Write a buffer to the log-file
     pub fn write(&mut self, buffer: &[u8]) -> Result<usize, Error> {
         let buffer_size = buffer.len();
         if !self.fit(buffer_size) {
@@ -93,28 +99,19 @@ impl Log {
         }
 
         self.offset += buffer_size;
-        (&mut self.writer[(self.offset - buffer_size)..=(self.offset)]).write(buffer)
-    }
-
-    /// Return the amount of space left
-    fn space_left(&self) -> usize {
-        self.max_size - self.offset
+        (&mut self.writer[(self.offset - buffer_size)..(self.offset)]).write(buffer)
     }
 
     //TODO read from the segment mmap reader
+    /// Read the log on a specific position
     pub fn read_at(&mut self, offset: usize, size: usize) -> Result<Vec<u8>, Error> {
-        // We seek the file to the moffset position
+        // We seek the file to the offset position
         self.file.seek(SeekFrom::Start(offset as u64))?;
 
-        // load the buffer
         let mut buf = vec![0u8; size];
         self.file.read_exact(&mut buf)?;
 
         Ok(buf)
-    }
-
-    pub fn flush(&mut self) -> Result<(), Error> {
-        self.writer.flush_async()
     }
 }
 
@@ -126,50 +123,55 @@ mod tests {
     use std::path::Path;
 
     #[test]
-    #[should_panic]
-    fn it_fails_when_the_dir_is_invalid() {
-        Log::new(Path::new("/invalid/dir/").to_path_buf(), 0, 100).unwrap();
-    }
-
-    #[test]
-    fn it_creates_a_new_file() {
+    fn test_create() {
         let tmp_dir = tmp_file_path();
         fs::create_dir_all(tmp_dir.clone()).unwrap();
         let expected_file = tmp_dir.clone().join("00000000000000000000.log");
 
-        Log::new(tmp_dir.clone(), 0, 10).unwrap();
+        let l = Log::new(tmp_dir.clone(), 0, 10).unwrap();
 
         assert!(expected_file.as_path().exists());
+        assert_eq!(l.offset(), 0); // should be zero when creating
     }
 
     #[test]
-    fn it_writes_to_a_log() {
+    #[should_panic]
+    fn test_invalid_create() {
+        Log::new(Path::new("/invalid/dir/").to_path_buf(), 0, 100).unwrap();
+    }
+
+    #[test]
+    fn test_write() {
         let tmp_dir = tmp_file_path();
         let expected_file = tmp_dir.clone().join("00000000000000000000.log");
         fs::create_dir_all(tmp_dir.clone()).unwrap();
 
         let mut l = Log::new(tmp_dir.clone(), 0, 20).unwrap();
         l.write(b"this-has-17-bytes").unwrap();
+        l.flush().unwrap(); // flush the file to ensure content is gonna be written
 
-        // Notice that the log fills the void of the max_size with empty bytes
+        // Notice that the log file is truncated with empty bytes
         assert_eq!(
             fs::read_to_string(expected_file).unwrap(),
             String::from("this-has-17-bytes\u{0}\u{0}\u{0}")
         );
+
+        assert_eq!(l.offset(), 17); // should update the offset when writing
     }
 
     #[test]
     #[should_panic]
-    fn it_fails_to_write_to_a_full_log() {
+    fn test_invalid_write() {
         let tmp_dir = tmp_file_path();
         fs::create_dir_all(tmp_dir.clone()).unwrap();
 
         let mut l = Log::new(tmp_dir.clone(), 0, 15).unwrap();
+        // buffer is bigger than log size
         l.write(b"this-has-17-bytes").unwrap();
     }
 
     #[test]
-    fn it_checks_if_buffer_fit() {
+    fn test_record_fit() {
         let tmp_dir = tmp_file_path();
         fs::create_dir_all(tmp_dir.clone()).unwrap();
 
@@ -178,8 +180,32 @@ mod tests {
 
         assert!(l.fit(20)); //  20 =< (100 - 17)
         assert!(l.fit(82)); //  82 =< (100 - 17)
-        assert!(!l.fit(83)); //  83 =< (100 - 17)
+        assert!(l.fit(83)); //  83 =< (100 - 17)
         assert!(!l.fit(84)); //  84 =< (100 - 17)
         assert!(!l.fit(200)); // 200 =< (100 - 17)
+    }
+
+    #[test]
+    fn test_read() {
+        let tmp_dir = tmp_file_path();
+        fs::create_dir_all(tmp_dir.clone()).unwrap();
+
+        let mut l = Log::new(tmp_dir.clone(), 0, 50).unwrap();
+        l.write(b"hello-from-the-other-side").unwrap();
+
+        assert_eq!(l.read_at(0, 25).unwrap(), b"hello-from-the-other-side");
+        assert_eq!(l.read_at(1, 24).unwrap(), b"ello-from-the-other-side");
+    }
+
+    #[test]
+    #[should_panic]
+    fn test_invalid_read() {
+        let tmp_dir = tmp_file_path();
+        fs::create_dir_all(tmp_dir.clone()).unwrap();
+
+        let mut l = Log::new(tmp_dir.clone(), 0, 50).unwrap();
+        l.write(b"hello-from-the-other-side").unwrap();
+
+        l.read_at(51, 20).unwrap(); // should fail since the position is invalid
     }
 }

@@ -8,12 +8,19 @@ use std::str::from_utf8_unchecked;
 
 /// Index
 ///
-/// A wrapper for writing/reading entries to the index file
+/// A wrapper for writing/reading entries to the index file.
 ///
 /// Every log has an index companion, e.g.:
 ///
 /// 00000000000011812312.log
 /// 00000000000011812312.idx
+///
+/// e.g.:
+///                          current cursor
+///                                 ^
+/// |-------------------------------|
+/// | offset-size | offset-size |...|----> time
+/// |-------------------------------|
 ///
 /// The role of the index is to provide pointers to records in the log file.
 /// Each entry of the index is 20 bytes long, 10 bytes are used for the offset address of the
@@ -25,6 +32,11 @@ use std::str::from_utf8_unchecked;
 /// is actually,
 /// 000000010 -> offset
 /// 000000020 -> size
+///
+/// Important:
+///   Neither reads nor writes to the log are directly triggering disk-level actions.
+///   Both operations are being intermediated by a memory-mapping buffers, managed by
+///   the OS and operated by public/privated methods of this struct.
 ///
 #[derive(Debug)]
 pub struct Index {
@@ -51,7 +63,7 @@ pub struct Index {
 const ENTRY_SIZE: usize = 20;
 
 impl Index {
-    /// Creates a new Index / reads the existing Index
+    /// Create a new Index / reads the existing Index
     pub fn new(path: PathBuf, base_offset: usize, max_size: usize) -> Result<Self, Error> {
         let file = OpenOptions::new()
             .read(true)
@@ -76,21 +88,26 @@ impl Index {
 
     /// Check if the given amount of entries fit
     pub fn fit(&mut self, entry: usize) -> bool {
-        self.max_size > (self.offset + (entry * ENTRY_SIZE))
+        self.max_size >= (self.offset + (entry * ENTRY_SIZE))
     }
 
-    /// Writes an entry to the index
+    /// Write an entry to the index
     pub fn write(&mut self, entry: Entry) -> Result<usize, Error> {
         if !self.fit(1) {
             return Err(Error::new(ErrorKind::Other, "No space left in the index"));
         }
         self.offset += ENTRY_SIZE;
 
-        (&mut self.writer[(self.offset - ENTRY_SIZE)..=(self.offset)])
+        (&mut self.writer[(self.offset - ENTRY_SIZE)..(self.offset)])
             .write(entry.to_string().as_bytes())
     }
 
-    /// Reads an entry from the index
+    /// Flush to ensure the content on memory is written to the file
+    pub fn flush(&mut self) -> Result<(), Error> {
+        self.writer.flush_async()
+    }
+
+    /// Read an entry from the index
     pub fn read_at(&mut self, offset: usize) -> Result<(Entry), Error> {
         let seek = (offset * ENTRY_SIZE) as u64;
         self.file.seek(SeekFrom::Start(seek))?;
@@ -124,10 +141,6 @@ impl Index {
 
         Ok(Entry::new(position, size))
     }
-
-    pub fn flush(&mut self) -> Result<(), Error> {
-        self.writer.flush_async()
-    }
 }
 
 /// Entry
@@ -143,10 +156,12 @@ pub struct Entry {
 }
 
 impl Entry {
+    /// Return a new entry reference
     pub fn new(offset: usize, size: usize) -> Self {
         Self { offset, size }
     }
 
+    /// Convert an entry to string
     pub fn to_string(&self) -> String {
         format!("{:010}{:010}", self.offset, self.size)
     }
@@ -154,36 +169,90 @@ impl Entry {
 
 #[cfg(test)]
 mod tests {
-    use commit_log::segment::index::{Entry, Index};
+    use super::*;
     use commit_log::test::*;
     use std::fs;
+    use std::path::Path;
 
-    /// Entry tests
     #[test]
-    fn test_entry_to_string() {
-        let e0 = Entry::new(0, 0);
-        let e1 = Entry::new(1, 2);
-        let e2 = Entry::new(1521230, 91028317);
+    fn test_create() {
+        let tmp_dir = tmp_file_path();
+        fs::create_dir_all(tmp_dir.clone()).unwrap();
+        let expected_file = tmp_dir.clone().join("00000000000000000000.idx");
 
-        assert_eq!(e0.to_string(), "00000000000000000000".to_string());
-        assert_eq!(e1.to_string(), "00000000010000000002".to_string());
-        assert_eq!(e2.to_string(), "00015212300091028317".to_string());
+        Index::new(tmp_dir.clone(), 0, 10).unwrap();
+
+        assert!(expected_file.as_path().exists());
     }
 
-    /// Index tests
     #[test]
-    fn test_write_to_a_new_file() {
+    #[should_panic]
+    fn test_invalid_create() {
+        Index::new(Path::new("/invalid/dir/").to_path_buf(), 0, 100).unwrap();
+    }
+
+    #[test]
+    fn test_write() {
+        let tmp_dir = tmp_file_path();
+        let expected_file = tmp_dir.clone().join("00000000000000000000.idx");
+        fs::create_dir_all(tmp_dir.clone()).unwrap();
+
+        let mut i = Index::new(tmp_dir.clone(), 0, 25).unwrap();
+        i.write(Entry::new(0, 10)).unwrap();
+        i.flush().unwrap(); // flush the file to ensure content is gonna be written
+
+        // Notice that the log file is truncated with empty bytes
+        assert_eq!(
+            fs::read_to_string(expected_file).unwrap(),
+            String::from("00000000000000000010\u{0}\u{0}\u{0}\u{0}\u{0}")
+        );
+    }
+
+    #[test]
+    #[should_panic]
+    fn test_invalid_write() {
         let tmp_dir = tmp_file_path();
         fs::create_dir_all(tmp_dir.clone()).unwrap();
 
-        let mut i = Index::new(tmp_dir.clone(), 0, 1000).unwrap();
+        let mut i = Index::new(tmp_dir.clone(), 0, 10).unwrap();
+        // buffer is bigger than log size
+        i.write(Entry::new(0, 10)).unwrap();
+    }
 
-        i.write(Entry::new(0, 12)).unwrap();
-        i.write(Entry::new(12, 15)).unwrap();
-        i.write(Entry::new(15, 50)).unwrap();
+    #[test]
+    fn test_record_fit() {
+        let tmp_dir = tmp_file_path();
+        fs::create_dir_all(tmp_dir.clone()).unwrap();
 
-        assert_eq!(i.read_at(0).unwrap(), Entry::new(0, 12));
-        assert_eq!(i.read_at(1).unwrap(), Entry::new(12, 15));
-        assert_eq!(i.read_at(2).unwrap(), Entry::new(15, 50));
+        let mut i = Index::new(tmp_dir.clone(), 0, 100).unwrap();
+        i.write(Entry::new(0, 10)).unwrap();
+
+        assert!(i.fit(4));
+        assert!(!i.fit(5));
+    }
+
+    #[test]
+    fn test_read() {
+        let tmp_dir = tmp_file_path();
+        fs::create_dir_all(tmp_dir.clone()).unwrap();
+
+        let mut i = Index::new(tmp_dir.clone(), 0, 50).unwrap();
+        i.write(Entry::new(0, 10)).unwrap();
+        i.write(Entry::new(10, 20)).unwrap();
+
+        assert_eq!(i.read_at(0).unwrap(), Entry::new(0, 10));
+        assert_eq!(i.read_at(1).unwrap(), Entry::new(10, 20));
+    }
+
+    #[test]
+    #[should_panic]
+    fn test_invalid_read() {
+        let tmp_dir = tmp_file_path();
+        fs::create_dir_all(tmp_dir.clone()).unwrap();
+
+        let mut i = Index::new(tmp_dir.clone(), 0, 50).unwrap();
+        i.write(Entry::new(0, 10)).unwrap();
+
+        i.read_at(20).unwrap(); // should fail since the position is invalid
     }
 }
