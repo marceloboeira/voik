@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="https://github.com/marceloboeira/voik/blob/master/docs/logos/logo_transparent.png?raw=true" width="500">
+  <img src="https://github.com/marceloboeira/voik/blob/master/docs/logos/github.png?raw=true" width="400">
   <p align="center">An experiment on persistent data-streaming<p>
   <p align="center">
     <img src="https://travis-ci.org/14-bits/voik.svg?branch=master">
