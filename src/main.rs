@@ -13,20 +13,22 @@ fn main() -> Result<(), std::io::Error> {
     fs::remove_dir_all(target_path.clone())?;
     println!("⚫️ voik logging to {:?}", target_path);
 
-    let segment_size = 5_000_000;
-    let index_size = 5_000_000;
+    let segment_size = 10_000_000; // 10MB
+    let index_size = 1_000_000; // 1MB
     let total_messages = 1_000_000;
+    let total_size_mb = (total_messages * 100) / 1_000_000;
     let mut clog = CommitLog::new(target_path, segment_size, index_size)?;
+
 
     let start = SystemTime::now();
     for i in 0..total_messages {
-        clog.write(format!("m-{:010}", i).as_bytes())?;
+        clog.write(format!("{:0100}", i).as_bytes())?; // 100 bytes record
     }
 
     let write_time = SystemTime::now();
     println!(
-        "{} messages written in {:?}",
-        total_messages,
+        "{} Megabytes worth records written in {:?}",
+        total_size_mb,
         write_time
             .duration_since(start)
             .expect("Time went backwards")
@@ -59,10 +61,44 @@ fn main() -> Result<(), std::io::Error> {
     }
 
     println!(
-        "{} messages read in {:?}",
-        total_messages,
+        "{} Megabytes worth records read in {:?}",
+        total_size_mb,
         SystemTime::now()
             .duration_since(write_time)
+            .expect("Time went backwards")
+    );
+
+    let warm = SystemTime::now();
+
+    let mut i = 0;
+    let mut j = 0;
+    let mut segment_error = false;
+    loop {
+        match clog.read_at(i, j) {
+            Ok(_) => {
+                segment_error = false;
+                j += 1;
+                //println!("{}", std::str::from_utf8(s).unwrap());
+            }
+            _ => {
+                if segment_error {
+                    //println!("error 2 {:?}", e);
+                    break;
+                } else {
+                    //println!("error 1 {:?}", e);
+                    segment_error = true;
+                    i += 1;
+                    j = 0;
+                }
+            }
+        }
+    }
+
+    println!(
+        "{} Megabytes worth warm records read in {:?}",
+        total_size_mb,
+        SystemTime::now()
+            .duration_since(warm)
             .expect("Time went backwards")
     );
 

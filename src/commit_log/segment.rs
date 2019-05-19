@@ -64,7 +64,7 @@ impl Segment {
     }
 
     /// Read the log at a given index offset
-    pub fn read_at(&mut self, offset: usize) -> Result<Vec<u8>, Error> {
+    pub fn read_at(&mut self, offset: usize) -> Result<&[u8], Error> {
         let entry = self.index.read_at(offset)?;
 
         self.log.read_at(entry.offset, entry.size)
@@ -188,6 +188,7 @@ mod tests {
 
         s.write(b"first-message").unwrap();
         s.write(b"second-message").unwrap();
+        s.flush().unwrap();
 
         assert_eq!(s.read_at(0).unwrap(), b"first-message");
         assert_eq!(s.read_at(1).unwrap(), b"second-message");

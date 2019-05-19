@@ -2,7 +2,7 @@ extern crate memmap;
 
 use self::memmap::{Mmap, MmapMut};
 use std::fs::{File, OpenOptions};
-use std::io::{Error, ErrorKind, Read, Seek, SeekFrom, Write};
+use std::io::{Error, ErrorKind, Write};
 use std::path::PathBuf;
 use std::str::from_utf8_unchecked;
 
@@ -109,18 +109,19 @@ impl Index {
 
     /// Read an entry from the index
     pub fn read_at(&mut self, offset: usize) -> Result<(Entry), Error> {
-        let seek = (offset * ENTRY_SIZE) as u64;
-        self.file.seek(SeekFrom::Start(seek))?;
+        let real_offset = offset * ENTRY_SIZE;
 
-        // TODO avoid reading 2 times from the file
-        // TODO avoid parsing to string -> usize...
-        let mut buffer = [0; 10]; //TODO use entry-size/2
+        if (real_offset + ENTRY_SIZE) >= self.reader.len() {
+            return Err(Error::new(
+                ErrorKind::Other,
+                "Index does not exist for index file",
+            ));
+        }
 
-        //reads 10 pieces at a time
-        self.file.read(&mut buffer)?;
+        let buffer = &self.reader[real_offset..(real_offset + ENTRY_SIZE)];
 
         let position = unsafe {
-            match from_utf8_unchecked(&buffer).parse::<usize>() {
+            match from_utf8_unchecked(&buffer[0..(ENTRY_SIZE / 2)]).parse::<usize>() {
                 Ok(pi) => pi,
                 _ => {
                     return Err(Error::new(
@@ -131,11 +132,9 @@ impl Index {
             }
         };
 
-        //reads 10 bytes at a time
-        self.file.read(&mut buffer)?;
         let size = unsafe {
-            match from_utf8_unchecked(&buffer).parse::<usize>() {
-                Ok(ps) => ps,
+            match from_utf8_unchecked(&buffer[(ENTRY_SIZE / 2)..ENTRY_SIZE]).parse::<usize>() {
+                Ok(si) => si,
                 _ => {
                     return Err(Error::new(
                         ErrorKind::Other,

@@ -33,15 +33,15 @@ Checkout the Roadmap for feature-specific details.
         * [x] Index
         * [ ] Better API for reading
       * [x] Extract logfile from segment
-      * [ ] Non-volatile storage (read from disk) Ref: (https://github.com/zowens/commitlog/blob/master/src/file_set.rs#L17-L98)
-      * [ ] Memory Mapped IO (Performance test before/after)
-        * [ ] Write
+      * [x] Memory Mapped IO (Performance test before/after)
+        * [x] Write
           * [x] Index
           * [x] Segment
           * [x] Refactor segment split to take index into account
-        * [ ] Read
-          * [ ] Index
-          * [ ] Segment
+        * [x] Read
+          * [x] Index
+          * [x] Segment
+      * [ ] Restore state from disk - Ref: (https://github.com/zowens/commitlog/blob/master/src/file_set.rs#L17-L98)
     * [ ] Record Struct
       * [ ] End-to-end use of records
   * [ ] Topics/Streams (probably should come up with a better name)

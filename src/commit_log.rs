@@ -104,7 +104,7 @@ impl CommitLog {
         self.active_segment().write(buffer)
     }
 
-    pub fn read_at(&mut self, segment_index: usize, offset: usize) -> Result<Vec<u8>, Error> {
+    pub fn read_at(&mut self, segment_index: usize, offset: usize) -> Result<&[u8], Error> {
         if segment_index >= self.segments.len() {
             return Err(Error::new(ErrorKind::Other, "Segment not available"));
         }

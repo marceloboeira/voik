@@ -2,7 +2,7 @@ extern crate memmap;
 
 use self::memmap::{Mmap, MmapMut};
 use std::fs::{File, OpenOptions};
-use std::io::{Error, ErrorKind, Read, Seek, SeekFrom, Write};
+use std::io::{Error, ErrorKind, Write};
 use std::path::PathBuf;
 
 /// Log
@@ -104,14 +104,15 @@ impl Log {
 
     //TODO read from the segment mmap reader
     /// Read the log on a specific position
-    pub fn read_at(&mut self, offset: usize, size: usize) -> Result<Vec<u8>, Error> {
-        // We seek the file to the offset position
-        self.file.seek(SeekFrom::Start(offset as u64))?;
+    pub fn read_at(&mut self, offset: usize, size: usize) -> Result<&[u8], Error> {
+        if (offset + size) > self.reader.len() {
+            return Err(Error::new(
+                ErrorKind::Other,
+                "Index does not exist for log file",
+            ));
+        }
 
-        let mut buf = vec![0u8; size];
-        self.file.read_exact(&mut buf)?;
-
-        Ok(buf)
+        Ok(&self.reader[(offset)..(offset + size)])
     }
 }
 
@@ -192,6 +193,7 @@ mod tests {
 
         let mut l = Log::new(tmp_dir.clone(), 0, 50).unwrap();
         l.write(b"hello-from-the-other-side").unwrap();
+        l.flush();
 
         assert_eq!(l.read_at(0, 25).unwrap(), b"hello-from-the-other-side");
         assert_eq!(l.read_at(1, 24).unwrap(), b"ello-from-the-other-side");
