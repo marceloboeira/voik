@@ -174,6 +174,19 @@ mod tests {
     use std::fs;
     use std::path::Path;
 
+    /// Entry tests
+    #[test]
+    fn test_entry_to_string() {
+        let e0 = Entry::new(0, 0);
+        let e1 = Entry::new(1, 2);
+        let e2 = Entry::new(1521230, 91028317);
+
+        assert_eq!(e0.to_string(), "00000000000000000000".to_string());
+        assert_eq!(e1.to_string(), "00000000010000000002".to_string());
+        assert_eq!(e2.to_string(), "00015212300091028317".to_string());
+    }
+
+    /// Index tests
     #[test]
     fn test_create() {
         let tmp_dir = tmp_file_path();
