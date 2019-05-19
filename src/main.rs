@@ -13,9 +13,9 @@ fn main() -> Result<(), std::io::Error> {
     fs::remove_dir_all(target_path.clone())?;
     println!("⚫️ voik logging to {:?}", target_path);
 
-    let segment_size = 10_000_000; // 10MB
-    let index_size = 1_000_000; // 1MB
-    let total_messages = 1_000_000;
+    let segment_size = 20_000_000; // 20MB
+    let index_size = 10_000_000; // 10MB
+    let total_messages = 100_000_000;
     let total_size_mb = (total_messages * 100) / 1_000_000;
     let mut clog = CommitLog::new(target_path, segment_size, index_size)?;
 

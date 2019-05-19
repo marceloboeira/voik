@@ -8,7 +8,7 @@
 
 ## Status
 
-Currently, working on foundation of the storage layer.
+Currently, working in the foundation of the storage layer.
 
 Checkout the Roadmap for feature-specific details.
 
@@ -19,6 +19,39 @@ Checkout the Roadmap for feature-specific details.
 * Single binary
 * Easy to Host, Run & Operate (have you tried to run Kafka yourself?)
   * Kubernetes friendly
+
+## Performance
+
+These are preliminar and poorly collected results, yet it looks interesting:
+
+**Storage** (Tests are completely offline, no network¹ ...)
+
+```
+Segment size: 20MiB
+Index size: 10MiB
+~15GiB worth records written in 157.005796s
+~15GiB worth cold records read in 3.744316s
+~15GiB worth warm records read in 2.448553s
+```
+
+Per-segment²:
+* ~90 MiB/s on write
+* ~390 MiB/s on cold read (while loading into memory pages)
+* ~610 MiB/s on warm read (already loaded into memory pages)
+
+
+Notes:
+* ¹ - Offline - no network overhead taken into account, network will be a big player on the overhead. However, the focus now is storage.
+* ² - Per-segment performance, in a comparinson with kinesis/kafka that would be the per-shard value. If you were to have 10 shards, you could achieve 10x that, limited by external factors, HD/CPU/...
+
+Setup:
+
+```
+OS: macOS Mojave 10.14.4 (18E226)
+CPU: 2,5 GHz Intel Core i7
+RAM: 16 GB 2133 MHz LPDDR3
+HD: 256 GB SSD Storage
+```
 
 ## Roadmap
 
