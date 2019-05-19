@@ -1,5 +1,5 @@
-# Compiled files
+# Rust
+## Compiled files
 /target/
-
-# Backup files from rustc
+## Backup files from rustc
 **/*.rs.bk
