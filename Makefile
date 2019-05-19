@@ -5,6 +5,7 @@ BIN_NAME ?= voik
 BIN_PATH ?= $(TARGET_PATH)/$(BIN_NAME)
 FUNZZY_BIN ?= `which funzzy`
 COMPOSE ?= `which docker-compose`
+COMPOSE_FILE ?= `pwd`/docker/compose.yml
 
 .PHONY: build
 build: format
@@ -36,4 +37,4 @@ test_watcher:
 
 .PHONY: docker_test_watcher
 docker_test_watcher:
-	@$(COMPOSE) up
+	@$(COMPOSE) -f $(COMPOSE_FILE) up

@@ -3,12 +3,12 @@ version: "3.7"
 services:
   test_watcher:
     build:
-      context: .
+      context: ../
       dockerfile: Dockerfile.test
     command: ["funzzy"]
     working_dir: "/voik"
     volumes:
-      - .:/voik
+      - ../:/voik
     tty: true
     environment:
         - TERM=xterm-256color
