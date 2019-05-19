@@ -87,54 +87,42 @@ mod tests {
 
     #[test]
     #[should_panic]
-    fn it_fails_when_the_dir_is_invalid() {
+    fn test_invalid_create() {
         Segment::new(Path::new("/invalid/dir/").to_path_buf(), 0, 100, 1000).unwrap();
     }
 
     #[test]
-    fn it_creates_the_file_when_it_does_not_exist() {
+    fn test_create() {
         let tmp_dir = tmp_file_path();
         fs::create_dir_all(tmp_dir.clone()).unwrap();
-        let expected_file = tmp_dir.clone().join("00000000000000000000.log");
+        let expected_log_file = tmp_dir.clone().join("00000000000000000000.log");
+        let expected_index_file = tmp_dir.clone().join("00000000000000000000.idx");
 
         Segment::new(tmp_dir.clone(), 0, 10, 1000).unwrap();
 
-        assert!(expected_file.as_path().exists());
+        assert!(expected_log_file.as_path().exists());
+        assert!(expected_index_file.as_path().exists());
     }
 
     #[test]
-    fn it_does_not_create_the_file_again_when_it_already_exists() {
+    fn test_write() {
         let tmp_dir = tmp_file_path();
-        let expected_file = tmp_dir.clone().join("00000000000000000000.log");
+        let expected_log_file = tmp_dir.clone().join("00000000000000000000.log");
+        let expected_index_file = tmp_dir.clone().join("00000000000000000000.idx");
 
         fs::create_dir_all(tmp_dir.clone()).unwrap();
 
-        let mut file = File::create(expected_file.clone()).unwrap();
-        file.write(b"2104").unwrap();
-
-        Segment::new(tmp_dir.clone(), 0, 100, 1000).unwrap();
-
-        assert!(expected_file.as_path().exists());
-        assert_eq!(
-            fs::read_to_string(expected_file).unwrap()[0..4],
-            String::from("2104")
-        );
-    }
-
-    #[test]
-    fn it_writes_to_a_new_segment_file() {
-        let tmp_dir = tmp_file_path();
-        let expected_file = tmp_dir.clone().join("00000000000000000000.log");
-
-        fs::create_dir_all(tmp_dir.clone()).unwrap();
-
-        let mut s = Segment::new(tmp_dir.clone(), 0, 100, 1000).unwrap();
+        let mut s = Segment::new(tmp_dir.clone(), 0, 100, 100).unwrap();
         s.write(b"2104").unwrap();
 
-        assert!(expected_file.as_path().exists());
         assert_eq!(
-            fs::read_to_string(expected_file).unwrap()[0..4],
+            fs::read_to_string(expected_log_file).unwrap()[0..4],
             String::from("2104")
+        );
+
+        assert_eq!(
+            fs::read_to_string(expected_index_file).unwrap()[0..20],
+            String::from("00000000000000000004")
         );
     }
 
@@ -163,24 +151,37 @@ mod tests {
 
     #[test]
     #[should_panic]
-    fn it_fails_when_writing_to_a_file_that_is_full() {
+    fn test_invalid_write() {
         let tmp_dir = tmp_file_path();
-        let expected_file = tmp_dir.clone().join("00000000000000000000.log");
         fs::create_dir_all(tmp_dir.clone()).unwrap();
 
         let mut s = Segment::new(tmp_dir.clone(), 0, 20, 1000).unwrap();
         s.write(b"this-has-17-bytes").unwrap();
 
-        assert_eq!(
-            fs::read_to_string(expected_file).unwrap(),
-            String::from("this-has-17-bytes")
-        );
-
+        // it already has 17 bytes out of 20, it won't fit more than 3
         s.write(b"this-should-error").unwrap();
     }
 
     #[test]
-    fn it_reads_at_a_given_location() {
+    fn test_fit() {
+        let tmp_dir = tmp_file_path();
+        fs::create_dir_all(tmp_dir.clone()).unwrap();
+
+        // check index size
+        let mut s = Segment::new(tmp_dir.clone(), 0, 20, 10).unwrap();
+        assert!(!s.fit(1)); // false because the index needs at least 20 bytes for an entry
+
+        // check buffer size
+        let mut s = Segment::new(tmp_dir.clone(), 0, 20, 10).unwrap();
+        assert!(!s.fit(100)); // false because of buffer size
+
+        // check correct
+        let mut s = Segment::new(tmp_dir.clone(), 0, 100, 100).unwrap();
+        assert!(s.fit(50)); // true because both buffer and index fit
+    }
+
+    #[test]
+    fn test_read() {
         let tmp_dir = tmp_file_path();
         fs::create_dir_all(tmp_dir.clone()).unwrap();
         let mut s = Segment::new(tmp_dir.clone(), 0, 100, 1000).unwrap();

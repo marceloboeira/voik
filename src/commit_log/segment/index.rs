@@ -123,7 +123,10 @@ impl Index {
             match from_utf8_unchecked(&buffer).parse::<usize>() {
                 Ok(pi) => pi,
                 _ => {
-                    return Err(Error::new(ErrorKind::Other, "Error parsing position from index"));
+                    return Err(Error::new(
+                        ErrorKind::Other,
+                        "Error parsing position from index",
+                    ));
                 }
             }
         };
@@ -134,8 +137,11 @@ impl Index {
             match from_utf8_unchecked(&buffer).parse::<usize>() {
                 Ok(ps) => ps,
                 _ => {
-                    return Err(Error::new(ErrorKind::Other, "Error parsing size from index"));
-                },
+                    return Err(Error::new(
+                        ErrorKind::Other,
+                        "Error parsing size from index",
+                    ));
+                }
             }
         };
 

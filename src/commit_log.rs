@@ -104,16 +104,16 @@ impl CommitLog {
         self.active_segment().write(buffer)
     }
 
-    fn active_segment(&mut self) -> &mut Segment {
-        let index = self.segments.len() - 1;
-        &mut self.segments[index]
-    }
-
     pub fn read_at(&mut self, segment_index: usize, offset: usize) -> Result<Vec<u8>, Error> {
         if segment_index >= self.segments.len() {
             return Err(Error::new(ErrorKind::Other, "Segment not available"));
         }
         self.segments[segment_index].read_at(offset)
+    }
+
+    fn active_segment(&mut self) -> &mut Segment {
+        let index = self.segments.len() - 1;
+        &mut self.segments[index]
     }
 }
 
@@ -126,66 +126,64 @@ mod tests {
 
     #[test]
     #[should_panic]
-    fn it_fails_to_initialize_when_the_path_is_invalid() {
+    fn test_invalid_create() {
         CommitLog::new(Path::new("\0").to_path_buf(), 100, 10000).unwrap();
     }
 
     #[test]
-    fn it_creates_the_folder_when_it_does_not_already_exist() {
+    fn test_create() {
+        // create folder
         let tmp_dir = tmp_file_path();
         CommitLog::new(tmp_dir.clone(), 100, 1000).unwrap();
+        assert!(tmp_dir.as_path().exists());
 
+        // accept an existing folder
+        let tmp_dir = tmp_file_path();
+        fs::create_dir_all(tmp_dir.clone()).unwrap();
+        CommitLog::new(tmp_dir.clone(), 100, 1000).unwrap();
         assert!(tmp_dir.as_path().exists());
     }
 
     #[test]
-    fn it_does_not_recreate_the_folder_when_it_already_exist() {
+    fn test_write() {
         let tmp_dir = tmp_file_path();
-        fs::create_dir_all(tmp_dir.clone()).unwrap();
-
-        CommitLog::new(tmp_dir, 100, 1000).unwrap();
-    }
-
-    #[test]
-    fn it_writes_to_a_segment() {
-        let tmp_dir = tmp_file_path();
-
         let mut c = CommitLog::new(tmp_dir, 100, 1000).unwrap();
 
         assert_eq!(c.write(b"this-has-less-than-100-bytes").unwrap(), 28);
     }
 
     #[test]
-    fn it_writes_to_a_new_segment_when_full() {
+    fn test_write_rotate_segments() {
         let tmp_dir = tmp_file_path();
-
         let mut c = CommitLog::new(tmp_dir, 100, 1000).unwrap();
         c.write(
             b"this-should-have-about-80-bytes-but-not-really-sure-to-be-honest-maybe-it-doesn't",
         )
         .unwrap();
 
+        // it should 'fail' since the segment has only 100 bytes, but this triggers a rotation
         assert_eq!(c.write(b"a-bit-more-than-20-bytes").unwrap(), 24);
     }
 
     #[test]
     #[should_panic]
-    fn it_fails_to_write_a_record_bigger_than_the_segment_size() {
+    fn test_invalid_write() {
         let tmp_dir = tmp_file_path();
-
         let mut c = CommitLog::new(tmp_dir, 10, 10000).unwrap();
+
+        // it should fail since the buffer is bigger than the max size of the segment
         c.write(b"the-buffer-is-too-big").unwrap();
     }
 
     #[test]
-    fn test_reads_at_a_given_position() {
+    fn test_read() {
         let tmp_dir = tmp_file_path();
-
         let mut c = CommitLog::new(tmp_dir, 50, 10000).unwrap();
+
         c.write(b"this-has-less-20b").unwrap();
         c.write(b"second-record").unwrap();
         c.write(b"third-record-bigger-goes-to-another-segment")
-            .unwrap();
+            .unwrap(); // segment switch trigger
 
         assert_eq!(c.read_at(0, 0).unwrap(), "this-has-less-20b".as_bytes());
         assert_eq!(c.read_at(0, 1).unwrap(), "second-record".as_bytes());
