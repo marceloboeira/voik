@@ -6,14 +6,10 @@ target/
 **/*.rs.bk
 
 # Dockerfiles
-Dockerfile
-Dockerfile.test
+docker/*
 
 # Makefile
 Makefile
-
-# ctags
-tags
 
 # Docs
 README.md
