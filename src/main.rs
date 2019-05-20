@@ -1,3 +1,7 @@
+#![feature(test)]
+#[cfg(test)]
+extern crate test as bench;
+pub mod test;
 pub mod commit_log;
 
 extern crate dirs;
@@ -18,7 +22,6 @@ fn main() -> Result<(), std::io::Error> {
     let total_messages = 100_000_000;
     let total_size_mb = (total_messages * 100) / 1_000_000;
     let mut clog = CommitLog::new(target_path, segment_size, index_size)?;
-
 
     let start = SystemTime::now();
     for i in 0..total_messages {

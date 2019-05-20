@@ -1,8 +1,12 @@
 # DISCLAIMER: This docker image is only for testings purposes
-FROM rust:1.31
+FROM rust:1.34
 
-# Adds rust formatting tool
+# Use nighly build
+
+RUN rustup default nightly
+
+# Add rust formatting tool
 RUN rustup component add rustfmt
 
-# Installs file watcher
+# Install file watcher
 RUN cargo install funzzy

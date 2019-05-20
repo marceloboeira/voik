@@ -1,8 +1,4 @@
-extern crate memmap;
-
 mod segment;
-#[cfg(feature = "test-prelude")]
-mod test;
 
 use self::segment::Segment;
 
@@ -119,10 +115,11 @@ impl CommitLog {
 
 #[cfg(test)]
 mod tests {
-    use commit_log::test::*;
-    use commit_log::CommitLog;
+    use super::*;
+    use bench::Bencher;
     use std::fs;
     use std::path::Path;
+    use test::*;
 
     #[test]
     #[should_panic]
@@ -178,18 +175,32 @@ mod tests {
     #[test]
     fn test_read() {
         let tmp_dir = tmp_file_path();
-        let mut c = CommitLog::new(tmp_dir, 50, 10000).unwrap();
+        let mut c = CommitLog::new(tmp_dir, 30, 10000).unwrap();
 
         c.write(b"this-has-less-20b").unwrap();
         c.write(b"second-record").unwrap();
-        c.write(b"third-record-bigger-goes-to-another-segment")
-            .unwrap(); // segment switch trigger
+        c.write(b"this-is-gonna-switch-segment").unwrap();
 
-        assert_eq!(c.read_at(0, 0).unwrap(), "this-has-less-20b".as_bytes());
-        assert_eq!(c.read_at(0, 1).unwrap(), "second-record".as_bytes());
-        assert_eq!(
-            c.read_at(1, 0).unwrap(),
-            "third-record-bigger-goes-to-another-segment".as_bytes()
-        );
+        assert_eq!(c.read_at(0, 0).unwrap(), b"this-has-less-20b");
+        assert_eq!(c.read_at(0, 1).unwrap(), b"second-record");
+        assert_eq!(c.read_at(1, 0).unwrap(), b"this-is-gonna-switch-segment");
+    }
+
+    /// Benchmarks
+    #[bench]
+    fn bench_write(b: &mut Bencher) {
+        let tmp_dir = tmp_file_path();
+        let segment_size = 20_000_000; // 20MB
+        let index_size = 10_000_000; // 10MB
+
+        let mut c = CommitLog::new(tmp_dir.clone(), segment_size, index_size).unwrap();
+
+        b.iter(|| {
+            let n = bench::black_box(1_000);
+
+            for i in 0..n {
+                bench::black_box(c.write(format!("{:0100}", i).as_bytes()).unwrap()); // 100 bytes record
+            }
+        });
     }
 }

@@ -29,7 +29,7 @@ install: build_release
 
 .PHONY: test
 test:
-	@$(CARGO_BIN) test --all-features
+	@$(CARGO_BIN) test --all --verbose
 
 .PHONY: test_watcher
 test_watcher:

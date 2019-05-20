@@ -4,7 +4,7 @@ services:
   test_watcher:
     build:
       context: ../
-      dockerfile: Dockerfile.test
+      dockerfile: ./docker/Dockerfile.test
     command: ["funzzy"]
     working_dir: "/voik"
     volumes:

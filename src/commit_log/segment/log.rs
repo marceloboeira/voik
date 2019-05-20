@@ -119,9 +119,9 @@ impl Log {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use commit_log::test::*;
     use std::fs;
     use std::path::Path;
+    use test::*;
 
     #[test]
     fn test_create() {
@@ -193,7 +193,7 @@ mod tests {
 
         let mut l = Log::new(tmp_dir.clone(), 0, 50).unwrap();
         l.write(b"hello-from-the-other-side").unwrap();
-        l.flush();
+        l.flush().unwrap();
 
         assert_eq!(l.read_at(0, 25).unwrap(), b"hello-from-the-other-side");
         assert_eq!(l.read_at(1, 24).unwrap(), b"ello-from-the-other-side");

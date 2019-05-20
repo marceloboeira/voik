@@ -7,10 +7,10 @@ os:
   - osx
 
 rust:
-  - stable
-  - beta
   - nightly
 
 script:
-  - cargo build --verbose --all
-  - cargo test --verbose --all --all-features
+  - cargo test --verbose --all
+
+after_success:
+  ./ci/travis-benchmark.sh

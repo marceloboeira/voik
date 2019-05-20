@@ -175,9 +175,9 @@ impl Entry {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use commit_log::test::*;
     use std::fs;
     use std::path::Path;
+    use test::*;
 
     /// Entry tests
     #[test]
