@@ -1,8 +1,5 @@
 CARGO_BIN ?= `which cargo`
-TARGET_PATH ?= `pwd`/target/release
 BIN_VERSION ?= 0.1.0
-BIN_NAME ?= voik
-BIN_PATH ?= $(TARGET_PATH)/$(BIN_NAME)
 FUNZZY_BIN ?= `which funzzy`
 COMPOSE ?= `which docker-compose`
 COMPOSE_FILE ?= `pwd`/docker/compose.yml
@@ -21,7 +18,11 @@ format:
 
 .PHONY: run
 run: build
-	@$(BIN_PATH)
+	@$(CARGO_BIN) run --release --bin voik
+
+.PHONY: benchmark
+benchmark:
+	@$(CARGO_BIN) run --release --bin voik_benchmark
 
 .PHONY: install
 install: build_release

@@ -9,3 +9,11 @@ memmap = "0.7.0"
 
 [dev-dependencies]
 rand = "0.6.5"
+
+[[bin]]
+name = "voik"
+path = "src/main.rs"
+
+[[bin]]
+name = "voik_benchmark"
+path = "src/benchmark.rs"
