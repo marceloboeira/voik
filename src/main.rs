@@ -19,7 +19,6 @@ fn main() -> Result<(), std::io::Error> {
     let total_size_mb = (total_messages * 100) / 1_000_000;
     let mut clog = CommitLog::new(target_path, segment_size, index_size)?;
 
-
     let start = SystemTime::now();
     for i in 0..total_messages {
         clog.write(format!("{:0100}", i).as_bytes())?; // 100 bytes record
