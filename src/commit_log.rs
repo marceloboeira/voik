@@ -203,4 +203,42 @@ mod tests {
             }
         });
     }
+
+    #[bench]
+    fn bench_read(b: &mut Bencher) {
+        let tmp_dir = tmp_file_path();
+        let segment_size = 20_000_000; // 20MB
+        let index_size = 10_000_000; // 10MB
+
+        let mut c = CommitLog::new(tmp_dir.clone(), segment_size, index_size).unwrap();
+
+        let n = bench::black_box(1_000);
+        for i in 0..n {
+            c.write(format!("{:0100}", i).as_bytes()).unwrap(); // 100 bytes record
+        }
+
+        b.iter(|| {
+            // read segment from start to end
+            let mut i = 0;
+            let mut j = 0;
+            let mut segment_error = false;
+            loop {
+                match c.read_at(i, j) {
+                    Ok(_) => {
+                        segment_error = false;
+                        j += 1;
+                    }
+                    _ => {
+                        if segment_error {
+                            break;
+                        } else {
+                            segment_error = true;
+                            i += 1;
+                            j = 0;
+                        }
+                    }
+                }
+            }
+        });
+    }
 }
