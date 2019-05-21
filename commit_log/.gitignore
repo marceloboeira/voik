@@ -1,7 +1,10 @@
 # Rust
 
 ## Compiled files
-/target/
+target/
 
 ## Backup files from rustc
 **/*.rs.bk
+
+## Cargo lock
+Cargo.lock

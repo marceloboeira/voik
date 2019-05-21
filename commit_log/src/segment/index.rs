@@ -174,10 +174,11 @@ impl Entry {
 
 #[cfg(test)]
 mod tests {
+    extern crate tempfile;
     use super::*;
-    use commit_log::test::*;
     use std::fs;
     use std::path::Path;
+    use tempfile::tempdir;
 
     /// Entry tests
     #[test]
@@ -194,7 +195,7 @@ mod tests {
     /// Index tests
     #[test]
     fn test_create() {
-        let tmp_dir = tmp_file_path();
+        let tmp_dir = tempdir().unwrap().path().to_owned();
         fs::create_dir_all(tmp_dir.clone()).unwrap();
         let expected_file = tmp_dir.clone().join("00000000000000000000.idx");
 
@@ -211,7 +212,7 @@ mod tests {
 
     #[test]
     fn test_write() {
-        let tmp_dir = tmp_file_path();
+        let tmp_dir = tempdir().unwrap().path().to_owned();
         let expected_file = tmp_dir.clone().join("00000000000000000000.idx");
         fs::create_dir_all(tmp_dir.clone()).unwrap();
 
@@ -229,7 +230,7 @@ mod tests {
     #[test]
     #[should_panic]
     fn test_invalid_write() {
-        let tmp_dir = tmp_file_path();
+        let tmp_dir = tempdir().unwrap().path().to_owned();
         fs::create_dir_all(tmp_dir.clone()).unwrap();
 
         let mut i = Index::new(tmp_dir.clone(), 0, 10).unwrap();
@@ -239,7 +240,7 @@ mod tests {
 
     #[test]
     fn test_record_fit() {
-        let tmp_dir = tmp_file_path();
+        let tmp_dir = tempdir().unwrap().path().to_owned();
         fs::create_dir_all(tmp_dir.clone()).unwrap();
 
         let mut i = Index::new(tmp_dir.clone(), 0, 100).unwrap();
@@ -251,7 +252,7 @@ mod tests {
 
     #[test]
     fn test_read() {
-        let tmp_dir = tmp_file_path();
+        let tmp_dir = tempdir().unwrap().path().to_owned();
         fs::create_dir_all(tmp_dir.clone()).unwrap();
 
         let mut i = Index::new(tmp_dir.clone(), 0, 50).unwrap();
@@ -265,7 +266,7 @@ mod tests {
     #[test]
     #[should_panic]
     fn test_invalid_read() {
-        let tmp_dir = tmp_file_path();
+        let tmp_dir = tempdir().unwrap().path().to_owned();
         fs::create_dir_all(tmp_dir.clone()).unwrap();
 
         let mut i = Index::new(tmp_dir.clone(), 0, 50).unwrap();

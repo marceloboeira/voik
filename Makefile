@@ -6,6 +6,7 @@ BIN_PATH ?= $(TARGET_PATH)/$(BIN_NAME)
 FUNZZY_BIN ?= `which funzzy`
 COMPOSE ?= `which docker-compose`
 COMPOSE_FILE ?= `pwd`/docker/compose.yml
+COMMIT_LOG_PATH ?= `pwd`/commit_log/
 
 .PHONY: build
 build: format
@@ -30,6 +31,7 @@ install: build_release
 .PHONY: test
 test:
 	@$(CARGO_BIN) test --all-features
+	@cd $(COMMIT_LOG_PATH) && $(CARGO_BIN) test --tests
 
 .PHONY: test_watcher
 test_watcher:

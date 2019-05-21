@@ -14,3 +14,5 @@ rust:
 script:
   - cargo build --verbose --all
   - cargo test --verbose --all --all-features
+  - cd commit_log/
+  - cargo test --tests

@@ -79,11 +79,12 @@ impl Segment {
 
 #[cfg(test)]
 mod tests {
+    extern crate tempfile;
     use super::*;
-    use commit_log::test::*;
     use std::fs::{self, File};
     use std::io::Write;
     use std::path::Path;
+    use tempfile::tempdir;
 
     #[test]
     #[should_panic]
@@ -93,7 +94,7 @@ mod tests {
 
     #[test]
     fn test_create() {
-        let tmp_dir = tmp_file_path();
+        let tmp_dir = tempdir().unwrap().path().to_owned();
         fs::create_dir_all(tmp_dir.clone()).unwrap();
         let expected_log_file = tmp_dir.clone().join("00000000000000000000.log");
         let expected_index_file = tmp_dir.clone().join("00000000000000000000.idx");
@@ -106,7 +107,7 @@ mod tests {
 
     #[test]
     fn test_write() {
-        let tmp_dir = tmp_file_path();
+        let tmp_dir = tempdir().unwrap().path().to_owned();
         let expected_log_file = tmp_dir.clone().join("00000000000000000000.log");
         let expected_index_file = tmp_dir.clone().join("00000000000000000000.idx");
 
@@ -129,7 +130,7 @@ mod tests {
     #[test]
     #[should_panic]
     fn it_fails_to_write_to_a_pre_existing_full_file() {
-        let tmp_dir = tmp_file_path();
+        let tmp_dir = tempdir().unwrap().path().to_owned();
         let expected_file = tmp_dir.clone().join("00000000000000000000.log");
 
         fs::create_dir_all(tmp_dir.clone()).unwrap();
@@ -152,7 +153,7 @@ mod tests {
     #[test]
     #[should_panic]
     fn test_invalid_write() {
-        let tmp_dir = tmp_file_path();
+        let tmp_dir = tempdir().unwrap().path().to_owned();
         fs::create_dir_all(tmp_dir.clone()).unwrap();
 
         let mut s = Segment::new(tmp_dir.clone(), 0, 20, 1000).unwrap();
@@ -164,7 +165,7 @@ mod tests {
 
     #[test]
     fn test_fit() {
-        let tmp_dir = tmp_file_path();
+        let tmp_dir = tempdir().unwrap().path().to_owned();
         fs::create_dir_all(tmp_dir.clone()).unwrap();
 
         // check index size
@@ -182,7 +183,7 @@ mod tests {
 
     #[test]
     fn test_read() {
-        let tmp_dir = tmp_file_path();
+        let tmp_dir = tempdir().unwrap().path().to_owned();
         fs::create_dir_all(tmp_dir.clone()).unwrap();
         let mut s = Segment::new(tmp_dir.clone(), 0, 100, 1000).unwrap();
 

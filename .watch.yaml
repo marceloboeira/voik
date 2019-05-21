@@ -1,4 +1,4 @@
-- name: format && test
+- name: test
   run: "make test"
-  change: "src/**"
+  change: ["src/**", "commit_log/src/**"]
   run_on_init: true

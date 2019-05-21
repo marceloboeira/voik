@@ -1,6 +1,5 @@
-pub mod commit_log;
-
 extern crate dirs;
+extern crate commit_log;
 
 use commit_log::CommitLog;
 use std::fs;

@@ -1,8 +1,5 @@
 extern crate memmap;
-
 mod segment;
-#[cfg(feature = "test-prelude")]
-mod test;
 
 use self::segment::Segment;
 
@@ -119,10 +116,11 @@ impl CommitLog {
 
 #[cfg(test)]
 mod tests {
-    use commit_log::test::*;
-    use commit_log::CommitLog;
+    extern crate tempfile;
+    use super::*;
     use std::fs;
     use std::path::Path;
+    use tempfile::tempdir;
 
     #[test]
     #[should_panic]
@@ -133,12 +131,12 @@ mod tests {
     #[test]
     fn test_create() {
         // create folder
-        let tmp_dir = tmp_file_path();
+        let tmp_dir = tempdir().unwrap().path().to_owned();
         CommitLog::new(tmp_dir.clone(), 100, 1000).unwrap();
         assert!(tmp_dir.as_path().exists());
 
         // accept an existing folder
-        let tmp_dir = tmp_file_path();
+        let tmp_dir = tempdir().unwrap().path().to_owned();
         fs::create_dir_all(tmp_dir.clone()).unwrap();
         CommitLog::new(tmp_dir.clone(), 100, 1000).unwrap();
         assert!(tmp_dir.as_path().exists());
@@ -146,7 +144,7 @@ mod tests {
 
     #[test]
     fn test_write() {
-        let tmp_dir = tmp_file_path();
+        let tmp_dir = tempdir().unwrap().path().to_owned();
         let mut c = CommitLog::new(tmp_dir, 100, 1000).unwrap();
 
         assert_eq!(c.write(b"this-has-less-than-100-bytes").unwrap(), 28);
@@ -154,7 +152,7 @@ mod tests {
 
     #[test]
     fn test_write_rotate_segments() {
-        let tmp_dir = tmp_file_path();
+        let tmp_dir = tempdir().unwrap().path().to_owned();
         let mut c = CommitLog::new(tmp_dir, 100, 1000).unwrap();
         c.write(
             b"this-should-have-about-80-bytes-but-not-really-sure-to-be-honest-maybe-it-doesn't",
@@ -168,7 +166,7 @@ mod tests {
     #[test]
     #[should_panic]
     fn test_invalid_write() {
-        let tmp_dir = tmp_file_path();
+        let tmp_dir = tempdir().unwrap().path().to_owned();
         let mut c = CommitLog::new(tmp_dir, 10, 10000).unwrap();
 
         // it should fail since the buffer is bigger than the max size of the segment
@@ -177,7 +175,7 @@ mod tests {
 
     #[test]
     fn test_read() {
-        let tmp_dir = tmp_file_path();
+        let tmp_dir = tempdir().unwrap().path().to_owned();
         let mut c = CommitLog::new(tmp_dir, 50, 10000).unwrap();
 
         c.write(b"this-has-less-20b").unwrap();

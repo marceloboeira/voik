@@ -118,14 +118,15 @@ impl Log {
 
 #[cfg(test)]
 mod tests {
+    extern crate tempfile;
     use super::*;
-    use commit_log::test::*;
     use std::fs;
     use std::path::Path;
+    use tempfile::tempdir;
 
     #[test]
     fn test_create() {
-        let tmp_dir = tmp_file_path();
+        let tmp_dir = tempdir().unwrap().path().to_owned();
         fs::create_dir_all(tmp_dir.clone()).unwrap();
         let expected_file = tmp_dir.clone().join("00000000000000000000.log");
 
@@ -143,7 +144,7 @@ mod tests {
 
     #[test]
     fn test_write() {
-        let tmp_dir = tmp_file_path();
+        let tmp_dir = tempdir().unwrap().path().to_owned();
         let expected_file = tmp_dir.clone().join("00000000000000000000.log");
         fs::create_dir_all(tmp_dir.clone()).unwrap();
 
@@ -163,7 +164,7 @@ mod tests {
     #[test]
     #[should_panic]
     fn test_invalid_write() {
-        let tmp_dir = tmp_file_path();
+        let tmp_dir = tempdir().unwrap().path().to_owned();
         fs::create_dir_all(tmp_dir.clone()).unwrap();
 
         let mut l = Log::new(tmp_dir.clone(), 0, 15).unwrap();
@@ -173,7 +174,7 @@ mod tests {
 
     #[test]
     fn test_record_fit() {
-        let tmp_dir = tmp_file_path();
+        let tmp_dir = tempdir().unwrap().path().to_owned();
         fs::create_dir_all(tmp_dir.clone()).unwrap();
 
         let mut l = Log::new(tmp_dir.clone(), 0, 100).unwrap();
@@ -188,12 +189,12 @@ mod tests {
 
     #[test]
     fn test_read() {
-        let tmp_dir = tmp_file_path();
+        let tmp_dir = tempdir().unwrap().path().to_owned();
         fs::create_dir_all(tmp_dir.clone()).unwrap();
 
         let mut l = Log::new(tmp_dir.clone(), 0, 50).unwrap();
         l.write(b"hello-from-the-other-side").unwrap();
-        l.flush();
+        l.flush().unwrap();
 
         assert_eq!(l.read_at(0, 25).unwrap(), b"hello-from-the-other-side");
         assert_eq!(l.read_at(1, 24).unwrap(), b"ello-from-the-other-side");
@@ -202,7 +203,7 @@ mod tests {
     #[test]
     #[should_panic]
     fn test_invalid_read() {
-        let tmp_dir = tmp_file_path();
+        let tmp_dir = tempdir().unwrap().path().to_owned();
         fs::create_dir_all(tmp_dir.clone()).unwrap();
 
         let mut l = Log::new(tmp_dir.clone(), 0, 50).unwrap();
