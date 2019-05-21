@@ -249,7 +249,6 @@ version = "0.1.0"
 dependencies = [
  "commit_log 0.1.0",
  "dirs 1.0.5 (registry+https://github.com/rust-lang/crates.io-index)",
- "memmap 0.7.0 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]

@@ -4,7 +4,6 @@ version = "0.1.0"
 authors = ["Marcelo Boeira <me@marceloboeira.com>"]
 
 [dependencies]
-memmap = "0.7.0"
 dirs = "1.0.5"
 
 [dependencies.commit_log]
