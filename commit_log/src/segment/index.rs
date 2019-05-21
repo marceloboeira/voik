@@ -5,6 +5,7 @@ use std::fs::{File, OpenOptions};
 use std::io::{Error, ErrorKind, Write};
 use std::path::PathBuf;
 use std::str::from_utf8_unchecked;
+use std::os::unix::fs::MetadataExt;
 
 /// Index
 ///
@@ -63,7 +64,7 @@ pub struct Index {
 const ENTRY_SIZE: usize = 20;
 
 impl Index {
-    /// Create a new Index / reads the existing Index
+    /// Create a new Index
     pub fn new(path: PathBuf, base_offset: usize, max_size: usize) -> Result<Self, Error> {
         let file = OpenOptions::new()
             .read(true)
@@ -79,7 +80,29 @@ impl Index {
         Ok(Self {
             base_offset: base_offset,
             max_size: max_size,
-            offset: 0, //TODO should be 0 when creating, but should read the file's one when reopening
+            offset: 0,
+            file: file,
+            reader: reader,
+            writer: writer,
+        })
+    }
+
+    /// Reopen an index
+    pub fn open(file_path: PathBuf, base_offset: usize, max_size: usize) -> Result<Self, Error> {
+        let file = OpenOptions::new()
+            .read(true)
+            .write(true)
+            .create(false)
+            .open(file_path)?;
+
+        let reader = unsafe { Mmap::map(&file).expect("failed to map the file") };
+        let writer = unsafe { MmapMut::map_mut(&file).expect("failed to map the file") };
+        let offset = &writer[..].len();
+
+        Ok(Self {
+            base_offset: base_offset,
+            max_size: max_size,
+            offset: *offset as usize,
             file: file,
             reader: reader,
             writer: writer,
@@ -88,6 +111,7 @@ impl Index {
 
     /// Check if the given amount of entries fit
     pub fn fit(&mut self, entry: usize) -> bool {
+        println!("{}", self.offset);
         self.max_size >= (self.offset + (entry * ENTRY_SIZE))
     }
 
@@ -113,9 +137,9 @@ impl Index {
 
         if (real_offset + ENTRY_SIZE) >= self.reader.len() {
             return Err(Error::new(
-                ErrorKind::Other,
-                "Index does not exist for index file",
-            ));
+                    ErrorKind::Other,
+                    "Index does not exist for index file",
+                    ));
         }
 
         let buffer = &self.reader[real_offset..(real_offset + ENTRY_SIZE)];
@@ -125,9 +149,9 @@ impl Index {
                 Ok(pi) => pi,
                 _ => {
                     return Err(Error::new(
-                        ErrorKind::Other,
-                        "Error parsing position from index",
-                    ));
+                            ErrorKind::Other,
+                            "Error parsing position from index",
+                            ));
                 }
             }
         };
@@ -137,9 +161,9 @@ impl Index {
                 Ok(si) => si,
                 _ => {
                     return Err(Error::new(
-                        ErrorKind::Other,
-                        "Error parsing size from index",
-                    ));
+                            ErrorKind::Other,
+                            "Error parsing size from index",
+                            ));
                 }
             }
         };
@@ -273,5 +297,33 @@ mod tests {
         i.write(Entry::new(0, 10)).unwrap();
 
         i.read_at(20).unwrap(); // should fail since the position is invalid
+    }
+
+    #[test]
+    fn test_reopen() {
+        let tmp_dir = tempdir().unwrap().path().to_owned();
+        let expected_file = tmp_dir.clone().join("00000000000000000000.idx");
+        fs::create_dir_all(tmp_dir.clone()).unwrap();
+
+        {
+            // Create first
+            let mut i = Index::new(tmp_dir.clone(), 0, 60).unwrap();
+            i.write(Entry::new(0, 10)).unwrap();
+            i.flush().unwrap(); // flush the file to ensure content is gonna be written
+        }
+
+        // Reopen
+        let mut i = Index::open(expected_file.clone(), 0, 60).unwrap();
+
+        assert!(i.fit(2)); // it had 20 bytes before, it supports 60, should fit another 2 entries
+        assert!(!i.fit(3)); // it should not fit another 3 entries
+
+        i.write(Entry::new(10, 100)).unwrap();
+
+        // Notice that the log file is truncated with empty bytes
+        assert_eq!(
+            fs::read_to_string(expected_file).unwrap(),
+            String::from("00000000000000000010\u{0}\u{0}\u{0}\u{0}\u{0}")
+        );
     }
 }
