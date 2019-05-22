@@ -8,3 +8,11 @@ dirs = "1.0.5"
 
 [dependencies.commit_log]
 path = "commit_log"
+
+[[bin]]
+name = "voik"
+path = "src/voik.rs"
+
+[[bin]]
+name = "voik_benchmark"
+path = "src/benchmark.rs"

@@ -27,18 +27,17 @@ These are preliminar and poorly collected results, yet it looks interesting:
 **Storage** (Tests are completely offline, no network¹ ...)
 
 ```
-Segment size: 20MiB
-Index size: 10MiB
-~15GiB worth records written in 157.005796s
-~15GiB worth cold records read in 3.744316s
-~15GiB worth warm records read in 2.448553s
+Segment size: 20MB
+Index size: 10MB
+5 GB worth records written in 37.667706s
+5 GB worth cold records read in 1.384433s
+5 GB worth warm records read in 1.266053s
 ```
 
 Per-segment²:
-* ~90 MiB/s on write
-* ~390 MiB/s on cold read (while loading into memory pages)
-* ~610 MiB/s on warm read (already loaded into memory pages)
-
+* ~130 MB/s on write
+* ~3.7 GB/s on cold read (while loading into memory pages)
+* ~4.2 GB/s on warm read (already loaded into memory pages)
 
 Notes:
 * ¹ - Offline - no network overhead taken into account, network will be a big player on the overhead. However, the focus now is storage.

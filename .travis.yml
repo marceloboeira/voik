@@ -7,12 +7,19 @@ os:
   - osx
 
 rust:
-  - stable
-  - beta
   - nightly
 
 script:
+  # Make sure build pass
   - cargo build --verbose --all
-  - cargo test --verbose --all --all-features
+
+  # Run binary tests
+  - cargo test --verbose --all
+
+  # Run commit_log sub-crate tests
   - cd commit_log/
   - cargo test --tests
+
+  # Run custom benchmark
+  - cd ../
+  - cargo run --release --bin voik_benchmark
