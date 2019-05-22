@@ -1,0 +1,18 @@
+graph TB
+    subgraph Client
+      producer[Producer]
+      consumer[Consumer]
+    end
+
+    subgraph Storage
+      commit_log[CommitLog]
+        commit_log --> segment[Segment]
+          segment --> index[Index]
+          segment --> log[Log]
+    end
+
+    subgraph Server
+      request_handler[Handler] --> commit_log
+      producer --> request_handler
+      consumer --> request_handler
+    end
