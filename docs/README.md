@@ -109,13 +109,17 @@ HD: 256 GB SSD Storage
     * [ ] How to Run
 
 ### Commands
+> Available make commands
 
-* `make build` -> build
-* `make build_release` -> build for release
-* `make run` -> build and run
-* `make install` -> use cargo to install locally
-* `make test_watcher` - Run the tests under a watcher.
-* `make docker_test_watcher` - Run the tests under a watcher on Docker (to ensure linux compatibility).
+* `make build` - Builds the application with cargo
+* `make build_release` - Builds the application with cargo, with release optimizations
+* `make docker_test_watcher` - Runs funzzy on linux over docker-compose
+* `make docs` - Generate the GitHub Markdown docs (At the moment only mermaid)
+* `make format` - Formats the code according to cargo
+* `make help` - Lists the available commands. Add a comment with '##' to describe a command.
+* `make install` - Builds a release version and installs to your cago bin path
+* `make run` - Runs the newly built
+* `make test` - Tests all features
 
 ## References
 
