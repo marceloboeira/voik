@@ -10,7 +10,7 @@
 
 Currently, working in the foundation of the storage layer.
 
-Checkout the Roadmap for feature-specific details.
+Checkout the [Roadmap](#roadmap) for feature-specific details.
 
 ## Project Goals
 
@@ -19,6 +19,119 @@ Checkout the Roadmap for feature-specific details.
 * Single binary
 * Easy to Host, Run & Operate (have you tried to run Kafka yourself?)
   * Kubernetes friendly
+
+## Internals
+
+<img src="https://github.com/14-bits/voik/blob/master/docs/architecture/graph.png?raw=true" width=300></img>
+
+### CommitLog
+
+The main component of the whole system is the commit-log, an abstraction manages reads and writes to the log by implementing an immutable, append-only, file-backed sequence of "records", or chunks of data/events that are transmited from producers to consumers.
+
+Records can be written to the log, always appending the last record over and over.
+
+e.g.:
+
+```
+                          current cursor
+ segment 0                       ^
+ |-------------------------------|
+ | record 0  |  record 1  |  ... |  --> time
+ |-------------------------------|
+```
+
+In order to manage and scale read and writes, the commit-log split groups of records into Segments, managing to write to a single segment until it reaches a certain, specified size.
+
+Each time a record is written, the segment is trusted to have enough space for the given buffer, then the record is written to the current segment, and the pointer is updated.
+
+More info in the `commit_log/src/lib.rs` file.
+
+#### Segment
+
+A Segment is a tuple abstraction to manage the Index and Log files.
+
+ Every Segment is composed of a log-file and an index, e.g.:
+
+```
+00000000000011812312.log
+00000000000011812312.idx
+```
+
+The role of the segment is to manage writes to the logfile and ensure the entries can be read later on by doing lookups in the index.
+
+On every write, the segment writes an entry to the index with the record's position and size, in the log-file, for later use.
+
+The segment also manages the size of the log file, preventing it from being written once it reaches the specified.
+
+When a segment is full, the commit log makes sure to rotate to a new one, closing the old one.
+
+See how it looks like on disk (on a high-level):
+```
+                                                       current cursor
+segment 0                                                     ^
+|-------------------------------|                             |
+| record 0  |  record 1  |  ... | segment 1 (current)         |
+|-------------------------------|-----------------------------| --> time
+                                |  record 2  | record 3 | ... |
+                                |-----------------------------|
+```
+
+Under the hood is a bit more complex, the management of writing to the file to disk is
+of the Segments', as well as managing the Index file.
+
+More info in the `commit_log/src/segment.rs` and `commit_log/src/segment/index.rs and log.rs` files.
+
+#### Log file
+
+The log file is a varied-size sequence of bytes that is storing the content of the records produced by the producers. However, the log itself doesn't have any mechanism for recovery of such records. That's responsibility of the index.
+
+Once initialized, the log-file is truncated to reach the desired value and reserve both memory and disk space, the same for the index.
+
+```
+                         current cursor
+                                ^
+|-------------------------------|
+| record 0  |  record 1  |  ... |----> time
+|-------------------------------|
+```
+
+Neither reads nor writes to the index are directly triggering disk-level actions.
+
+Both operations are being intermediated by a memory-mapping buffers, managed by the OS.
+
+More info in the `commit_log/src/segment/log.rs` file.
+
+#### Index file
+
+The role of the index is to provide pointers to records in the log file. Each entry of the index is 20 bytes long, 10 bytes are used for the offset address of the record in the log file, the other 10 bytes for the size of the record.
+
+e.g.:
+
+```
+                          current cursor
+                                 ^
+ |-------------------------------|
+ | offset-size | offset-size |...|----> time
+ |-------------------------------|
+```
+
+There is no separator, it's position-based.
+
+ e.g.:
+```
+00000001000000000020
+---------------------
+  offset  |  size
+
+* 000000010 -> offset
+* 000000020 -> size
+```
+
+Neither reads nor writes to the index are directly triggering disk-level actions.
+
+Both operations are being intermediated by a memory-mapping buffers, managed by the OS.
+
+More info in the `commit_log/src/segment/index.rs` file.
 
 ## Performance
 

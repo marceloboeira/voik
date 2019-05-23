@@ -34,7 +34,7 @@ use std::str::from_utf8_unchecked;
 /// 000000020 -> size
 ///
 /// Important:
-///   Neither reads nor writes to the log are directly triggering disk-level actions.
+///   Neither reads nor writes to the index are directly triggering disk-level actions.
 ///   Both operations are being intermediated by a memory-mapping buffers, managed by
 ///   the OS and operated by public/privated methods of this struct.
 ///
