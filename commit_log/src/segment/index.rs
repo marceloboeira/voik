@@ -1,6 +1,6 @@
 extern crate memmap;
 
-use self::memmap::{Mmap, MmapMut};
+use self::memmap::MmapMut;
 use std::fs::{File, OpenOptions};
 use std::io::{Error, ErrorKind, Write};
 use std::path::PathBuf;
@@ -43,11 +43,8 @@ pub struct Index {
     /// File Descriptor
     file: File,
 
-    /// Reader memory map buffer
-    reader: Mmap,
-
-    /// Writer memory map buffer
-    writer: MmapMut,
+    /// Memory map buffer
+    mmap: MmapMut,
 
     /// Max size of the index
     max_size: usize,
@@ -71,18 +68,16 @@ impl Index {
             .create(true)
             .open(path.join(format!("{:020}.idx", base_offset)))?; //TODO improve file formatting
 
-        file.set_len(max_size as u64).unwrap();
+        file.set_len(max_size as u64).unwrap(); //TODO Should we avoid truncating when size is given?
 
-        let reader = unsafe { Mmap::map(&file).expect("failed to map the file") };
-        let writer = unsafe { MmapMut::map_mut(&file).expect("failed to map the file") };
+        let mmap = unsafe { MmapMut::map_mut(&file).expect("failed to map the file") };
 
         Ok(Self {
-            base_offset: base_offset,
-            max_size: max_size,
-            offset: 0, //TODO should be 0 when creating, but should read the file's one when reopening
-            file: file,
-            reader: reader,
-            writer: writer,
+            base_offset,
+            max_size,
+            offset: 0,
+            file,
+            mmap,
         })
     }
 
@@ -98,27 +93,27 @@ impl Index {
         }
         self.offset += ENTRY_SIZE;
 
-        (&mut self.writer[(self.offset - ENTRY_SIZE)..(self.offset)])
+        (&mut self.mmap[(self.offset - ENTRY_SIZE)..(self.offset)])
             .write(entry.to_string().as_bytes())
     }
 
     /// Flush to ensure the content on memory is written to the file
     pub fn flush(&mut self) -> Result<(), Error> {
-        self.writer.flush_async()
+        self.mmap.flush_async()
     }
 
     /// Read an entry from the index
     pub fn read_at(&mut self, offset: usize) -> Result<(Entry), Error> {
         let real_offset = offset * ENTRY_SIZE;
 
-        if (real_offset + ENTRY_SIZE) >= self.reader.len() {
+        if (real_offset + ENTRY_SIZE) >= self.mmap.len() {
             return Err(Error::new(
                 ErrorKind::Other,
                 "Index does not exist for index file",
             ));
         }
 
-        let buffer = &self.reader[real_offset..(real_offset + ENTRY_SIZE)];
+        let buffer = &self.mmap[real_offset..(real_offset + ENTRY_SIZE)];
 
         let position = unsafe {
             match from_utf8_unchecked(&buffer[0..(ENTRY_SIZE / 2)]).parse::<usize>() {
