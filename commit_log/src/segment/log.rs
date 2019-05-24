@@ -1,6 +1,6 @@
 extern crate memmap;
 
-use self::memmap::{Mmap, MmapMut};
+use self::memmap::MmapMut;
 use std::fs::{File, OpenOptions};
 use std::io::{Error, ErrorKind, Write};
 use std::path::PathBuf;
@@ -30,11 +30,8 @@ pub struct Log {
     /// File Descriptor
     file: File,
 
-    /// Reader memory buffer
-    reader: Mmap,
-
-    /// Writer memory buffer
-    writer: MmapMut,
+    /// Memory buffer
+    mmap: MmapMut,
 
     /// Base offset of the log on the global commit-log
     base_offset: usize,
@@ -63,16 +60,14 @@ impl Log {
         //let size = file.metadata()?.len() as usize;
         let offset = 0;
 
-        let reader = unsafe { Mmap::map(&file).expect("failed to map the file") };
-        let writer = unsafe { MmapMut::map_mut(&file).expect("failed to map the file") };
+        let mmap = unsafe { MmapMut::map_mut(&file).expect("failed to map the file") };
 
         Ok(Self {
-            file: file,
-            base_offset: base_offset,
-            offset: offset,
-            max_size: max_size,
-            reader: reader,
-            writer: writer,
+            file,
+            base_offset,
+            offset,
+            max_size,
+            mmap: mmap,
         })
     }
 
@@ -88,7 +83,7 @@ impl Log {
 
     /// Flush to ensure the content on memory is written to the file
     pub fn flush(&mut self) -> Result<(), Error> {
-        self.writer.flush_async()
+        self.mmap.flush_async()
     }
 
     /// Write a buffer to the log-file
@@ -99,20 +94,20 @@ impl Log {
         }
 
         self.offset += buffer_size;
-        (&mut self.writer[(self.offset - buffer_size)..(self.offset)]).write(buffer)
+        (&mut self.mmap[(self.offset - buffer_size)..(self.offset)]).write(buffer)
     }
 
     //TODO read from the segment mmap reader
     /// Read the log on a specific position
     pub fn read_at(&mut self, offset: usize, size: usize) -> Result<&[u8], Error> {
-        if (offset + size) > self.reader.len() {
+        if (offset + size) > self.mmap.len() {
             return Err(Error::new(
                 ErrorKind::Other,
                 "Index does not exist for log file",
             ));
         }
 
-        Ok(&self.reader[(offset)..(offset + size)])
+        Ok(&self.mmap[(offset)..(offset + size)])
     }
 }
 
