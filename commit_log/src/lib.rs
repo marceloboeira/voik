@@ -61,7 +61,6 @@ impl CommitLog {
             fs::create_dir_all(path.clone())?;
         }
 
-        //TODO figure it out the segment starting in 0, should we truncate the file?
         let segments = vec![Segment::new(path.clone(), 0, segment_size, index_size)?];
 
         Ok(Self {
@@ -75,7 +74,6 @@ impl CommitLog {
     pub fn write(&mut self, buffer: &[u8]) -> Result<usize, Error> {
         let buffer_size = buffer.len();
 
-        //TODO find a better place for this?
         if buffer_size > self.segment_size {
             return Err(Error::new(
                 ErrorKind::Other,
@@ -83,19 +81,8 @@ impl CommitLog {
             ));
         }
 
-        //TODO find a better place for this?
         if !self.active_segment().fit(buffer_size) {
-            let segments_size = self.segments.len();
-
-            //TODO close/truncate segment
-            self.active_segment().flush()?;
-
-            self.segments.push(Segment::new(
-                self.path.clone(),
-                segments_size,
-                self.segment_size,
-                self.index_size,
-            )?);
+            self.rotate_segment()?;
         }
 
         self.active_segment().write(buffer)
@@ -106,6 +93,21 @@ impl CommitLog {
             return Err(Error::new(ErrorKind::Other, "Segment not available"));
         }
         self.segments[segment_index].read_at(offset)
+    }
+
+    fn rotate_segment(&mut self) -> Result<(), Error> {
+        let next_offset = self.segments.len();
+
+        self.active_segment().flush()?;
+
+        self.segments.push(
+            Segment::new(self.path.clone(),
+                         next_offset,
+                         self.segment_size,
+                self.index_size,
+                )?);
+
+        Ok(())
     }
 
     fn active_segment(&mut self) -> &mut Segment {
