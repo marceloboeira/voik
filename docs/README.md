@@ -1,6 +1,6 @@
 <p align="center">
   <img src="https://github.com/marceloboeira/voik/blob/master/docs/logos/github.png?raw=true" width="400">
-  <p align="center">An experiment on persistent data-streaming<p>
+  <p align="center">An experimental distributed streaming platform<p>
   <p align="center">
     <img src="https://travis-ci.org/14-bits/voik.svg?branch=master">
   </p>
@@ -10,15 +10,16 @@
 
 Currently, working in the foundation of the **storage layer**.
 
-To know more about component internals, performance and references, please check the [ARCHITECTURE.md](https://github.com/14-bits/voik/blob/master/docs/ARCHITECTURE.md).
+Found an issue? Feel like contributing? Make sure to check out our [contributing guide](https://github.com/14-bits/voik/blob/master/docs/CONTRIBUTING.md) first.
+
+To know more about component internals, performance and references, please check the [architecture internals](https://github.com/14-bits/voik/blob/master/docs/ARCHITECTURE.md) documentation.
 
 ## Project Goals
 
-* Learn and have fun™️
+* Learn
 * Implement a Kinesis-like streaming-service
 * Single binary
-* Easy to Host, Run & Operate (have you tried to run Kafka yourself?)
-  * Kubernetes friendly
+* Easy to Host, Run & Operate
 
 ### Commands
 > Available make commands
