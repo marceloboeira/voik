@@ -105,12 +105,15 @@ impl CommitLog {
 
     pub fn read_after(&mut self, position: Position, mut offset: usize) -> Result<Record, Error> {
         let current_pos = match position {
-            Position::Horizontal => 1,
+            Position::Horizon => 1,
             Position::Offset(offset) => offset
         };
         offset += current_pos;
 
-        return Record::new(&mut self.segments[self.current_segment], offset);
+        Ok(Record {
+            segment_index: self.current_segment,
+            current_offset: offset
+        })
     }
 
 
