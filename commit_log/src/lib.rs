@@ -2,6 +2,7 @@ extern crate memmap;
 mod segment;
 mod position;
 mod record;
+mod reader;
 
 use self::segment::Segment;
 use position::Position;

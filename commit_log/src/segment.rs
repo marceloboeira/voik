@@ -64,7 +64,7 @@ impl Segment {
     }
 
     /// Read the log at a given index offset
-    pub fn read_at(&mut self, offset: usize) -> Result<&[u8], Error> {
+    pub fn read_at(&self, offset: usize) -> Result<&[u8], Error> {
         let entry = self.index.read_at(offset)?;
 
         self.log.read_at(entry.offset, entry.size)
