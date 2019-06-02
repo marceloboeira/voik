@@ -1,4 +1,6 @@
 pub enum Position {
-    Horizontal, 
+    /// The first entry available.
+    Horizon,
+
     Offset(usize)
 }

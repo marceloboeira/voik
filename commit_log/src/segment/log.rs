@@ -99,7 +99,7 @@ impl Log {
 
     //TODO read from the segment mmap reader
     /// Read the log on a specific position
-    pub fn read_at(&mut self, offset: usize, size: usize) -> Result<&[u8], Error> {
+    pub fn read_at(&self, offset: usize, size: usize) -> Result<&[u8], Error> {
         if (offset + size) > self.mmap.len() {
             return Err(Error::new(
                 ErrorKind::Other,
