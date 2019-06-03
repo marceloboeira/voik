@@ -2,7 +2,7 @@ use super::record::Record;
 use super::CommitLog;
 use super::position::Position;
 use std::result::Result;
-use std::io::Error;
+use std::io::{Error, ErrorKind};
 
 pub struct Reader<'a> {
     pub commit_log: &'a CommitLog
@@ -15,8 +15,18 @@ impl<'a> Reader<'a> {
     /// # Arguments
     /// * `record` - A Record to be read.
     pub fn read(&self, record: &Record) -> Result<&[u8], Error> {
-        let segment = &self.commit_log.segments[record.segment_index];
-        segment.read_at(record.current_offset)
+        let segment_index = record.segment_index;
+        let total_segments = self.commit_log.segments.len();
+        if segment_index >= total_segments {
+            Err(Error::new(
+                ErrorKind::Other,
+                "Error parsing position from index",
+            ))
+        } else {
+            let segment = &self.commit_log.segments[segment_index];
+            segment.read_at(record.current_offset)
+        }
+
     }
 
     /// Read the position of one record
