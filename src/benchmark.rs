@@ -3,6 +3,39 @@ extern crate dirs;
 
 use commit_log::CommitLog;
 use std::time::SystemTime;
+use commit_log::Reader;
+use commit_log::Record;
+
+fn loop_commit_log(clog: &CommitLog) -> Result<(), std::io::Error> {
+    let mut record = Record {
+        current_offset: 0,
+        segment_index: 1,
+    };
+    let reader = Reader {
+        commit_log: &clog,
+    };
+    let mut segment_error = false;
+    loop {
+        match reader.read(&record) {
+            Ok(_) => {
+                segment_error = false;
+                record = Reader::next(&record);
+                //println!("{}", std::str::from_utf8(s).unwrap());
+            }
+            _ => {
+                if segment_error {
+                    //println!("error 2 {:?}", e);
+                    break;
+                } else {
+                    //println!("error 1 {:?}", e);
+                    segment_error = true;
+                    record = Reader::next_segment(&record);
+                }
+            }
+        }
+    }
+    Ok(())
+}
 
 fn main() -> Result<(), std::io::Error> {
     let mut target_path = dirs::home_dir().unwrap();
@@ -37,29 +70,7 @@ fn main() -> Result<(), std::io::Error> {
     // ########### Cold Read Performance Benchmark  ###########
     // TODO implement a better way of READING sequencially, PLEASE
     // Read from first record, on the first segment (Horizon)
-    let mut i = 0;
-    let mut j = 0;
-    let mut segment_error = false;
-    loop {
-        match clog.read_at(i, j) {
-            Ok(_) => {
-                segment_error = false;
-                j += 1;
-                //println!("{}", std::str::from_utf8(s).unwrap());
-            }
-            _ => {
-                if segment_error {
-                    //println!("error 2 {:?}", e);
-                    break;
-                } else {
-                    //println!("error 1 {:?}", e);
-                    segment_error = true;
-                    i += 1;
-                    j = 0;
-                }
-            }
-        }
-    }
+    loop_commit_log(&clog)?;
 
     println!(
         "{} GB worth cold records read in {:?}",
@@ -71,27 +82,8 @@ fn main() -> Result<(), std::io::Error> {
 
     // ########### Warm Read Performance Benchmark  ###########
     let warm = SystemTime::now();
-    let mut i = 0;
-    let mut j = 0;
-    let mut segment_error = false;
-    loop {
-        match clog.read_at(i, j) {
-            Ok(_) => {
-                segment_error = false;
-                j += 1;
-            }
-            _ => {
-                if segment_error {
-                    break;
-                } else {
-                    segment_error = true;
-                    i += 1;
-                    j = 0;
-                }
-            }
-        }
-    }
 
+    loop_commit_log(&clog)?;
     println!(
         "{} GB worth warm records read in {:?}",
         total_size_gb,
@@ -99,6 +91,6 @@ fn main() -> Result<(), std::io::Error> {
             .duration_since(warm)
             .expect("Time went backwards")
     );
-
     Ok(())
+
 }
