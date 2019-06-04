@@ -5,8 +5,9 @@ mod record;
 mod reader;
 
 use self::segment::Segment;
-use position::Position;
-use record::Record;
+pub use position::Position;
+pub use record::Record;
+pub use reader::Reader;
 
 use std::fs;
 use std::io::{Error, ErrorKind};
@@ -104,10 +105,11 @@ impl CommitLog {
         self.segments[segment_index].read_at(offset)
     }
 
-    pub fn read_after(&mut self, position: Position, mut offset: usize) -> Result<Record, Error> {
+    pub fn read_after(&mut self, position: &Position, mut offset: usize) -> Result<Record, Error> {
+        let horizon: usize = 1;
         let current_pos = match position {
-            Position::Horizon => 1,
-            Position::Offset(offset) => offset
+            Position::Horizon => horizon,
+            Position::Offset(offset) => *offset
         };
         offset += current_pos;
 
@@ -117,11 +119,9 @@ impl CommitLog {
         })
     }
 
-
-    pub fn read(&mut self, position: Position) -> Result<Record, Error> {
+    pub fn read(&mut self, position: &Position) -> Result<Record, Error> {
         return self.read_after(position, 0);
     }
-
 
     fn rotate_segment(&mut self) -> Result<(), Error> {
         let next_offset = self.segments.len();
