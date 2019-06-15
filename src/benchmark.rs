@@ -2,18 +2,16 @@ extern crate commit_log;
 extern crate dirs;
 
 use commit_log::CommitLog;
-use std::time::SystemTime;
 use commit_log::Reader;
 use commit_log::Record;
+use std::time::SystemTime;
 
 fn loop_commit_log(clog: &CommitLog) -> Result<(), std::io::Error> {
     let mut record = Record {
         current_offset: 0,
         segment_index: 1,
     };
-    let reader = Reader {
-        commit_log: &clog,
-    };
+    let reader = Reader { commit_log: &clog };
     let mut segment_error = false;
     loop {
         match reader.read(&record) {
@@ -92,5 +90,4 @@ fn main() -> Result<(), std::io::Error> {
             .expect("Time went backwards")
     );
     Ok(())
-
 }

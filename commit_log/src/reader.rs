@@ -66,9 +66,6 @@ impl<'a> Reader<'a> {
 mod tests {
     extern crate tempfile;
     use super::*;
-    use std::fs::{self, File};
-    use std::io::Write;
-    use std::path::Path;
     use tempfile::tempdir;
 
     #[test]
