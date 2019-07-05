@@ -122,9 +122,16 @@ These are preliminar and poorly collected results, yet it looks interesting:
 
 **Storage** (Tests are completely offline, no network¹ ...)
 
+* Setup 1:
+
 ```
-Segment size: 20MB
-Index size: 10MB
+OS: macOS Mojave 10.14.4 (18E226)
+CPU: 2,5 GHz Intel Core i7
+RAM: 16 GB 2133 MHz LPDDR3
+HD: 256 GB SSD Storage
+---------------
+Segment size: 20 MB
+Index size: 10 MB
 5 GB worth records written in 37.667706s
 5 GB worth cold records read in 1.384433s
 5 GB worth warm records read in 1.266053s
@@ -135,18 +142,49 @@ Per-segment²:
 * ~3.7 GB/s on cold read (while loading into memory pages)
 * ~4.2 GB/s on warm read (already loaded into memory pages)
 
+* Setup 2:
+
+```
+OS: macOS Mojave 10.14.5 (18F203)
+CPU: 2,9 GHz Intel Core i9
+RAM: 32 GB 2400 MHz DDR4
+HD: 500 GB SSD Storage
+---------------
+Segment size: 20 MB
+Index size: 10 MB
+5 GB worth records written in 26.851791s
+5 GB worth cold records read in 141.969ms
+5 GB worth warm records read in 124.623ms
+```
+
+Per-segment²:
+* ~187 MB/s on write
+* ~35 GB/s on cold read (while loading into memory pages)
+* ~41 GB/s on warm read (already loaded into memory pages)
+
+* Setup 3:
+
+```
+OS: macOS Mojave 10.14.5 (18F203)
+CPU: 2,9 GHz Intel Core i9
+RAM: 32 GB 2400 MHz DDR4
+HD: 500 GB SSD Storage
+---------------
+Segment size: 50 MB
+Index size: 20 MB
+10 GB worth records written in 54.96796s
+10 GB worth cold records read in 437.933ms
+10 GB worth warm records read in 310.853ms
+```
+
+Per-segment²:
+* ~181 MB/s on write
+* ~22 GB/s on cold read (while loading into memory pages)
+* ~21 GB/s on warm read (already loaded into memory pages)
+
 Notes:
 * ¹ - Offline - no network overhead taken into account, network will be a big player on the overhead. However, the focus now is storage.
 * ² - Per-segment performance, in a comparinson with kinesis/kafka that would be the per-shard value. If you were to have 10 shards, you could achieve 10x that, limited by external factors, HD/CPU/...
-
-Setup:
-
-```
-OS: macOS Mojave 10.14.4 (18E226)
-CPU: 2,5 GHz Intel Core i7
-RAM: 16 GB 2133 MHz LPDDR3
-HD: 256 GB SSD Storage
-```
 
 ## References
 
