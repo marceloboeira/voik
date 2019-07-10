@@ -1,8 +1,8 @@
 <p align="center">
-  <img src="https://github.com/marceloboeira/voik/blob/master/docs/logos/github.png?raw=true" width="400">
+  <img src="https://github.com/14bits/voik/blob/master/docs/logos/github.png?raw=true" width="400">
   <p align="center">An experimental distributed streaming platform<p>
   <p align="center">
-    <img src="https://travis-ci.org/14-bits/voik.svg?branch=master">
+    <img src="https://travis-ci.org/14bits/voik.svg?branch=master">
   </p>
 </p>
 

@@ -19,7 +19,7 @@ MERMAID ?= `which mmdc`
 DOCS_PATH ?= `pwd`/docs
 
 .PHONY: help
-help: ## Lists the available commands. Add a comment with '##' to describe a command.
+help: ## Lists the available commands
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | sort | awk 'BEGIN {FS = ":.*?## "}; {printf "\033[36m%-30s\033[0m %s\n", $$1, $$2}'
 
 .PHONY: build
