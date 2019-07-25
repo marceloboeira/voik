@@ -1,10 +1,10 @@
 # Contributing
 
-Found a problem? Have a question? [open an issue](https://github.com/14-bits/voik/issues/new).
+Found a problem? Have a question? [open an issue](https://github.com/marceloboeira/voik/issues/new).
 
 We also love pull requests from everyone, feel free to open one, but remember to follow the guidelines:
 
-1. Double check the [roadmap](https://github.com/14-bits/voik/issues/7), there might be someone already working on similar tasks.
+1. Double check the [roadmap](https://github.com/marceloboeira/voik/issues/7), there might be someone already working on similar tasks.
 
 2. Fork, then clone the repo:
 
@@ -34,7 +34,7 @@ make test
 
 6. Push to your fork and [submit a pull request][pr].
 
-[pr]: https://github.com/14-bits/voik/compare/
+[pr]: https://github.com/marceloboeira/voik/compare/
 
 At this point you're waiting on us. We may suggest some changes or improvements or alternatives.
 

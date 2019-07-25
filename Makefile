@@ -56,5 +56,5 @@ docker_test_watcher: ## Runs funzzy on linux over docker-compose
 	@$(COMPOSE) -f $(COMPOSE_FILE) up
 
 .PHONY: docs
-docs: ## Generate the GitHub Markdown docs (At the moment only mermaid)
+docs: ## Generates the GitHub Markdown docs (At the moment only mermaid)
 	@$(MERMAID) -w 800 -i $(DOCS_PATH)/architecture/graph.mmd -o $(DOCS_PATH)/architecture/graph.png

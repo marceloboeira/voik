@@ -1,6 +1,6 @@
 # Architecture
 
-<img src="https://github.com/14-bits/voik/blob/master/docs/architecture/graph.png?raw=true" width=300></img>
+<img src="https://github.com/marceloboeira/voik/blob/master/docs/architecture/graph.png?raw=true" width=300></img>
 
 At this point, we have only the foundation of the Storage layer implemented. The other parts of the above picture are for demonstration purposes of future componentes.
 
