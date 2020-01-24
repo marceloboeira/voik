@@ -1,13 +1,13 @@
 extern crate memmap;
-mod segment;
 mod position;
-mod record;
 mod reader;
+mod record;
+mod segment;
 
 use self::segment::Segment;
 pub use position::Position;
-pub use record::Record;
 pub use reader::Reader;
+pub use record::Record;
 
 use std::fs;
 use std::io::{Error, ErrorKind};
@@ -61,7 +61,7 @@ pub struct CommitLog {
     segments: Vec<Segment>, //TODO if too many Segments are created, and not "garbage collected", we have too many files opened
 
     /// Current segment index
-    current_segment: usize
+    current_segment: usize,
 }
 
 impl CommitLog {
@@ -77,7 +77,7 @@ impl CommitLog {
             segments: segments,
             segment_size: segment_size,
             index_size: index_size,
-            current_segment: 0
+            current_segment: 0,
         })
     }
 
@@ -109,13 +109,13 @@ impl CommitLog {
         let horizon: usize = 1;
         let current_pos = match position {
             Position::Horizon => horizon,
-            Position::Offset(offset) => *offset
+            Position::Offset(offset) => *offset,
         };
         offset += current_pos;
 
         Ok(Record {
             segment_index: self.current_segment,
-            current_offset: offset
+            current_offset: offset,
         })
     }
 
@@ -128,12 +128,12 @@ impl CommitLog {
 
         self.active_segment().flush()?;
 
-        self.segments.push(
-            Segment::new(self.path.clone(),
-                         next_offset,
-                         self.segment_size,
-                self.index_size,
-                )?);
+        self.segments.push(Segment::new(
+            self.path.clone(),
+            next_offset,
+            self.segment_size,
+            self.index_size,
+        )?);
 
         Ok(())
     }

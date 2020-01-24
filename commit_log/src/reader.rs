@@ -1,15 +1,14 @@
+use super::position::Position;
 use super::record::Record;
 use super::CommitLog;
-use super::position::Position;
-use std::result::Result;
 use std::io::{Error, ErrorKind};
+use std::result::Result;
 
 pub struct Reader<'a> {
-    pub commit_log: &'a CommitLog
+    pub commit_log: &'a CommitLog,
 }
 
 impl<'a> Reader<'a> {
-
     /// Read the log according to record's information.
     ///
     /// # Arguments
@@ -26,7 +25,6 @@ impl<'a> Reader<'a> {
             let segment = &self.commit_log.segments[segment_index];
             segment.read_at(record.current_offset)
         }
-
     }
 
     /// Read the position of one record
@@ -45,7 +43,7 @@ impl<'a> Reader<'a> {
     pub fn record_after(record: &Record, offset: usize) -> Record {
         Record {
             segment_index: record.segment_index,
-            current_offset: record.current_offset + offset
+            current_offset: record.current_offset + offset,
         }
     }
 
@@ -80,12 +78,13 @@ mod tests {
 
         let record = Record {
             current_offset: 0,
-            segment_index: 0
+            segment_index: 0,
         };
-        let reader = Reader {
-            commit_log: &c,
-        };
-        assert_eq!(reader.read(&record).unwrap(), "this-has-less-20b".as_bytes());
+        let reader = Reader { commit_log: &c };
+        assert_eq!(
+            reader.read(&record).unwrap(),
+            "this-has-less-20b".as_bytes()
+        );
     }
 
     #[test]
@@ -100,14 +99,15 @@ mod tests {
 
         let record = Record {
             current_offset: 0,
-            segment_index: 0
+            segment_index: 0,
         };
-        let reader = Reader {
-            commit_log: &c,
-        };
+        let reader = Reader { commit_log: &c };
         let record_after = Reader::record_after(&record, 1);
         assert_eq!(record_after.current_offset, 1);
         assert_eq!(record_after.segment_index, 0);
-        assert_eq!(reader.read(&record_after).unwrap(), "second-record".as_bytes());
+        assert_eq!(
+            reader.read(&record_after).unwrap(),
+            "second-record".as_bytes()
+        );
     }
 }
