@@ -2,9 +2,20 @@ extern crate memmap;
 
 use self::memmap::MmapMut;
 use std::fs::{File, OpenOptions};
-use std::io::{Error, ErrorKind, Write};
+use std::io::{self, Write};
+use std::num;
 use std::path::PathBuf;
 use std::str::from_utf8_unchecked;
+
+use derive_more::From;
+
+#[derive(Debug, From)]
+pub enum Error {
+    Io(io::Error),
+    Num(num::ParseIntError),
+    NoSpaceLeft,
+    InvalidIndex,
+}
 
 /// Index
 ///
@@ -89,17 +100,19 @@ impl Index {
     /// Write an entry to the index
     pub fn write(&mut self, entry: Entry) -> Result<usize, Error> {
         if !self.fit(1) {
-            return Err(Error::new(ErrorKind::Other, "No space left in the index"));
+            return Err(Error::NoSpaceLeft);
         }
         self.offset += ENTRY_SIZE;
 
-        (&mut self.mmap[(self.offset - ENTRY_SIZE)..(self.offset)])
-            .write(entry.to_string().as_bytes())
+        let size = (&mut self.mmap[(self.offset - ENTRY_SIZE)..(self.offset)])
+            .write(entry.to_string().as_bytes())?;
+        Ok(size)
     }
 
     /// Flush to ensure the content on memory is written to the file
     pub fn flush(&mut self) -> Result<(), Error> {
-        self.mmap.flush_async()
+        self.mmap.flush_async()?;
+        Ok(())
     }
 
     /// Read an entry from the index
@@ -107,36 +120,19 @@ impl Index {
         let real_offset = offset * ENTRY_SIZE;
 
         if (real_offset + ENTRY_SIZE) >= self.mmap.len() {
-            return Err(Error::new(
-                ErrorKind::Other,
-                "Index does not exist for index file",
-            ));
+            return Err(Error::InvalidIndex);
         }
 
         let buffer = &self.mmap[real_offset..(real_offset + ENTRY_SIZE)];
 
         let position = unsafe {
-            match from_utf8_unchecked(&buffer[0..(ENTRY_SIZE / 2)]).parse::<usize>() {
-                Ok(pi) => pi,
-                _ => {
-                    return Err(Error::new(
-                        ErrorKind::Other,
-                        "Error parsing position from index",
-                    ));
-                }
-            }
+            let position = from_utf8_unchecked(&buffer[0..(ENTRY_SIZE / 2)]).parse()?;
+            position
         };
 
         let size = unsafe {
-            match from_utf8_unchecked(&buffer[(ENTRY_SIZE / 2)..ENTRY_SIZE]).parse::<usize>() {
-                Ok(si) => si,
-                _ => {
-                    return Err(Error::new(
-                        ErrorKind::Other,
-                        "Error parsing size from index",
-                    ));
-                }
-            }
+            let size = from_utf8_unchecked(&buffer[(ENTRY_SIZE / 2)..ENTRY_SIZE]).parse()?;
+            size
         };
 
         Ok(Entry::new(position, size))

@@ -1,8 +1,17 @@
 use super::position::Position;
 use super::record::Record;
 use super::CommitLog;
-use std::io::{Error, ErrorKind};
+use std::io;
 use std::result::Result;
+
+use derive_more::From;
+
+#[derive(Debug, From)]
+pub enum Error {
+    Io(io::Error),
+    Segment(super::segment::Error),
+    InvalidPosition,
+}
 
 pub struct Reader<'a> {
     pub commit_log: &'a CommitLog,
@@ -17,13 +26,11 @@ impl<'a> Reader<'a> {
         let segment_index = record.segment_index;
         let total_segments = self.commit_log.segments.len();
         if segment_index >= total_segments {
-            Err(Error::new(
-                ErrorKind::Other,
-                "Error parsing position from index",
-            ))
+            return Err(Error::InvalidPosition);
         } else {
             let segment = &self.commit_log.segments[segment_index];
-            segment.read_at(record.current_offset)
+            let buf = segment.read_at(record.current_offset)?;
+            Ok(buf)
         }
     }
 
