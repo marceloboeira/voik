@@ -39,10 +39,7 @@ fn main() -> Result<(), std::io::Error> {
     let mut target_path = dirs::home_dir().unwrap();
     target_path.push("voik/");
 
-    println!(
-        "⚫️ voik benchmark starting, logging to {:?}",
-        target_path
-    );
+    println!("⚫️ voik benchmark starting, logging to {:?}", target_path);
 
     let segment_size: u64 = 20_000_000; // 20MB
     let index_size: u64 = 10_000_000; // 10MB
