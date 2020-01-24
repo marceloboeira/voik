@@ -2,8 +2,17 @@ extern crate memmap;
 
 use self::memmap::MmapMut;
 use std::fs::{File, OpenOptions};
-use std::io::{Error, ErrorKind, Write};
+use std::io::{self, Write};
 use std::path::PathBuf;
+
+use derive_more::From;
+
+#[derive(Debug, From)]
+pub enum Error {
+    Io(io::Error),
+    NoSpaceLeft,
+    InvalidIndex,
+}
 
 /// Log
 ///
@@ -83,28 +92,27 @@ impl Log {
 
     /// Flush to ensure the content on memory is written to the file
     pub fn flush(&mut self) -> Result<(), Error> {
-        self.mmap.flush_async()
+        self.mmap.flush_async()?;
+        Ok(())
     }
 
     /// Write a buffer to the log-file
     pub fn write(&mut self, buffer: &[u8]) -> Result<usize, Error> {
         let buffer_size = buffer.len();
         if !self.fit(buffer_size) {
-            return Err(Error::new(ErrorKind::Other, "No space left in the log"));
+            return Err(Error::NoSpaceLeft);
         }
 
         self.offset += buffer_size;
-        (&mut self.mmap[(self.offset - buffer_size)..(self.offset)]).write(buffer)
+        let size = (&mut self.mmap[(self.offset - buffer_size)..(self.offset)]).write(buffer)?;
+        Ok(size)
     }
 
     //TODO read from the segment mmap reader
     /// Read the log on a specific position
     pub fn read_at(&self, offset: usize, size: usize) -> Result<&[u8], Error> {
         if (offset + size) > self.mmap.len() {
-            return Err(Error::new(
-                ErrorKind::Other,
-                "Index does not exist for log file",
-            ));
+            return Err(Error::InvalidIndex);
         }
 
         Ok(&self.mmap[(offset)..(offset + size)])

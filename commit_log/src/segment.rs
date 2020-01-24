@@ -3,8 +3,17 @@ mod log;
 
 use self::index::Index;
 use self::log::Log;
-use std::io::Error;
+use std::io;
 use std::path::PathBuf;
+
+use derive_more::From;
+
+#[derive(Debug, From)]
+pub enum Error {
+    Io(io::Error),
+    Index(index::Error),
+    Log(log::Error),
+}
 
 /// Segment
 ///
@@ -60,20 +69,25 @@ impl Segment {
     pub fn write(&mut self, buffer: &[u8]) -> Result<usize, Error> {
         self.index
             .write(index::Entry::new(self.log.offset(), buffer.len()))?;
-        self.log.write(buffer)
+
+        let len = self.log.write(buffer)?;
+        Ok(len)
     }
 
     /// Read the log at a given index offset
     pub fn read_at(&self, offset: usize) -> Result<&[u8], Error> {
         let entry = self.index.read_at(offset)?;
 
-        self.log.read_at(entry.offset, entry.size)
+        let buf = self.log.read_at(entry.offset, entry.size)?;
+        Ok(buf)
     }
 
     /// Flush both the index and the log to ensure persistence
     pub fn flush(&mut self) -> Result<(), Error> {
         self.index.flush()?;
-        self.log.flush()
+        self.log.flush()?;
+
+        Ok(())
     }
 }
 

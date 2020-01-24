@@ -10,8 +10,18 @@ pub use reader::Reader;
 pub use record::Record;
 
 use std::fs;
-use std::io::{Error, ErrorKind};
+use std::io;
 use std::path::PathBuf;
+
+use derive_more::From;
+
+#[derive(Debug, From)]
+pub enum Error {
+    Io(io::Error),
+    Segment(segment::Error),
+    BufferSizeExceeded,
+    SegmentUnavailable,
+}
 
 /// CommitLog
 ///
@@ -92,24 +102,24 @@ impl CommitLog {
         let buffer_size = buffer.len();
 
         if buffer_size > self.segment_size {
-            return Err(Error::new(
-                ErrorKind::Other,
-                "Buffer size is bigger than segment size",
-            ));
+            return Err(Error::BufferSizeExceeded);
         }
 
         if !self.active_segment().fit(buffer_size) {
             self.rotate_segment()?;
         }
 
-        self.active_segment().write(buffer)
+        let len = self.active_segment().write(buffer)?;
+        Ok(len)
     }
 
     pub fn read_at(&mut self, segment_index: usize, offset: usize) -> Result<&[u8], Error> {
         if segment_index >= self.segments.len() {
-            return Err(Error::new(ErrorKind::Other, "Segment not available"));
+            return Err(Error::SegmentUnavailable);
         }
-        self.segments[segment_index].read_at(offset)
+
+        let buf = self.segments[segment_index].read_at(offset)?;
+        Ok(buf)
     }
 
     pub fn read_after(&mut self, position: &Position, mut offset: usize) -> Result<Record, Error> {
