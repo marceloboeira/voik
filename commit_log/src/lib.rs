@@ -23,17 +23,19 @@ use std::path::PathBuf;
 ///
 /// Each time a record is written, the segment is trusted to have enough space for the given
 /// buffer, then the record is written to the current segment, and the pointer is updated.
-///
+/// ```ignore
 ///                          current cursor
 /// segment 0                       ^
 /// |-------------------------------|
 /// | record 0  |  record 1  |  ... |  --> time
 /// |-------------------------------|
 ///
+/// ```
 /// When a segment is full, the commit log makes sure to rotate to a new one, closing the
 /// old one.
 ///
 /// See how it looks like on disk (on a high-level):
+/// ```ignore
 ///                                                        current cursor
 /// segment 0                                                     ^
 /// |-------------------------------|                             |
@@ -41,7 +43,7 @@ use std::path::PathBuf;
 /// |-------------------------------|-----------------------------| --> time
 ///                                 |  record 2  | record 3 | ... |
 ///                                 |-----------------------------|
-///
+/// ```
 /// Under the hood is a bit more complex, the management of writing to the file to disk is
 /// of the Segments', as well as managing the Index file.
 ///
@@ -65,7 +67,12 @@ pub struct CommitLog {
 }
 
 impl CommitLog {
-    pub fn new(path: PathBuf, segment_size: usize, index_size: usize) -> Result<Self, Error> {
+    pub fn new<P: Into<PathBuf>>(
+        path: P,
+        segment_size: usize,
+        index_size: usize,
+    ) -> Result<Self, Error> {
+        let path = path.into();
         if !path.as_path().exists() {
             fs::create_dir_all(path.clone())?;
         }
@@ -210,8 +217,9 @@ mod tests {
 
         c.write(b"this-has-less-20b").unwrap();
         c.write(b"second-record").unwrap();
+        // segment switch trigger
         c.write(b"third-record-bigger-goes-to-another-segment")
-            .unwrap(); // segment switch trigger
+            .unwrap();
 
         assert_eq!(c.read_at(0, 0).unwrap(), "this-has-less-20b".as_bytes());
         assert_eq!(c.read_at(0, 1).unwrap(), "second-record".as_bytes());
