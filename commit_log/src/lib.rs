@@ -5,9 +5,7 @@ mod record;
 mod segment;
 
 use self::segment::Segment;
-pub use position::Position;
 pub use reader::Reader;
-pub use record::Record;
 
 use std::fs;
 use std::io;
@@ -21,6 +19,19 @@ pub enum Error {
     Segment(segment::Error),
     BufferSizeExceeded,
     SegmentUnavailable,
+}
+
+pub enum Position {
+    /// The first entry available.
+    Horizon,
+    Offset(usize),
+}
+
+pub struct Record {
+    /// The current offset within current segment.
+    pub current_offset: usize,
+    /// Index to current segment.
+    pub segment_index: usize,
 }
 
 /// CommitLog
