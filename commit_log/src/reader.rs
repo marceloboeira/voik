@@ -1,6 +1,5 @@
-use super::position::Position;
-use super::record::Record;
-use super::CommitLog;
+use crate::{CommitLog, Position, Record};
+
 use std::io;
 use std::result::Result;
 
