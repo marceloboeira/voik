@@ -1,12 +1,12 @@
 extern crate commit_log;
 extern crate dirs;
 
-use commit_log::CommitLog;
 use commit_log::Reader;
 use commit_log::Record;
+use commit_log::{CommitLog, Error};
 use std::time::SystemTime;
 
-fn loop_commit_log(clog: &CommitLog) -> Result<(), std::io::Error> {
+fn loop_commit_log(clog: &CommitLog) -> Result<(), Error> {
     let mut record = Record {
         current_offset: 0,
         segment_index: 1,
@@ -35,7 +35,7 @@ fn loop_commit_log(clog: &CommitLog) -> Result<(), std::io::Error> {
     Ok(())
 }
 
-fn main() -> Result<(), std::io::Error> {
+fn main() -> Result<(), Error> {
     let mut target_path = dirs::home_dir().unwrap();
     target_path.push("voik/");
 
