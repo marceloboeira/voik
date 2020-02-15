@@ -116,7 +116,7 @@ impl Index {
     }
 
     /// Read an entry from the index
-    pub fn read_at(&self, offset: usize) -> Result<(Entry), Error> {
+    pub fn read_at(&self, offset: usize) -> Result<Entry, Error> {
         let real_offset = offset * ENTRY_SIZE;
 
         if (real_offset + ENTRY_SIZE) >= self.mmap.len() {
