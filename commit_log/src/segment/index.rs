@@ -8,6 +8,7 @@ use std::path::PathBuf;
 use std::str::from_utf8_unchecked;
 
 use derive_more::From;
+use std::fmt;
 
 #[derive(Debug, From)]
 pub enum Error {
@@ -156,10 +157,11 @@ impl Entry {
     pub fn new(offset: usize, size: usize) -> Self {
         Self { offset, size }
     }
+}
 
-    /// Convert an entry to string
-    pub fn to_string(&self) -> String {
-        format!("{:010}{:010}", self.offset, self.size)
+impl fmt::Display for Entry {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{:010}{:010}", self.offset, self.size)
     }
 }
 

@@ -76,7 +76,7 @@ impl Log {
             base_offset,
             offset,
             max_size,
-            mmap: mmap,
+            mmap,
         })
     }
 
