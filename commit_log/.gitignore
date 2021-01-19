@@ -8,3 +8,6 @@ target/
 
 ## Cargo lock
 Cargo.lock
+
+# IDE
+**/.idea/
