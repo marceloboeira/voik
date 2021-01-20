@@ -99,10 +99,10 @@ impl CommitLog {
         let segments = vec![Segment::new(path.clone(), 0, segment_size, index_size)?];
 
         Ok(Self {
-            path: path,
-            segments: segments,
-            segment_size: segment_size,
-            index_size: index_size,
+            path,
+            segments,
+            segment_size,
+            index_size,
             current_segment: 0,
         })
     }
@@ -146,7 +146,7 @@ impl CommitLog {
     }
 
     pub fn read(&mut self, position: &Position) -> Result<Record, Error> {
-        return self.read_after(position, 0);
+        self.read_after(position, 0)
     }
 
     fn rotate_segment(&mut self) -> Result<(), Error> {

@@ -25,7 +25,7 @@ impl<'a> Reader<'a> {
         let segment_index = record.segment_index;
         let total_segments = self.commit_log.segments.len();
         if segment_index >= total_segments {
-            return Err(Error::InvalidPosition);
+            Err(Error::InvalidPosition)
         } else {
             let segment = &self.commit_log.segments[segment_index];
             let buf = segment.read_at(record.current_offset)?;

@@ -55,8 +55,8 @@ impl Segment {
     ) -> Result<Self, Error> {
         Ok(Self {
             log: Log::new(path.clone(), offset, max_log_size)?,
-            index: Index::new(path.clone(), offset, max_index_size)?,
-            offset: offset,
+            index: Index::new(path, offset, max_index_size)?,
+            offset,
         })
     }
 
