@@ -13,6 +13,9 @@ script:
   # Make sure build pass
   - cargo build --verbose --all
 
+  # Allow more files to be open for testing purposes
+  - ulimit -n 10000
+
   # Run binary tests
   - cargo test --verbose --all
 

@@ -5,3 +5,6 @@
 
 ## Backup files from rustc
 **/*.rs.bk
+
+# IDE
+**/.idea/
